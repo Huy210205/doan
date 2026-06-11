@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+psycopg2-binary
+sqlalchemy
+beautifulsoup4
+requests
+aiohttp
+scikit-learn
+pandas
+python-multipart
+passlib
+bcrypt==3.2.0
+PyJWT

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: web_sec_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: web_sec_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: web_sec_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./backend/database/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  flyway:
+    image: flyway/flyway:9-alpine
+    container_name: web_sec_flyway
+    command: -url=jdbc:postgresql://db:5432/web_sec_db -user=postgres -password=postgres migrate
+    volumes:
+      - ./backend/database/migrations:/flyway/sql
+    depends_on:
+      - db
+
+  backend:
+    image: python:3.10-slim
+    container_name: web_sec_backend
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
+  pgadmin_data:

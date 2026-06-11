@@ -1,0 +1,201 @@
+{
+  "app": {
+    "title": "WebSec AI",
+    "subtitle": "Web Security AI Scanner",
+    "logo_path": "./assets/logo.svg",
+    "copyright": "© 2026 WebSec AI Scanner. Developed with high-end UI/UX & GSAP."
+  },
+  "auth": {
+    "login_title": "Đăng nhập Hệ thống",
+    "login_subtitle": "Web Security AI Scanner",
+    "email_placeholder": "Email đăng nhập",
+    "password_placeholder": "Mật khẩu",
+    "login_button": "Đăng nhập",
+    "register_link": "Chưa có tài khoản? Đăng ký ngay",
+    "register_title": "Đăng ký Tài khoản",
+    "register_subtitle": "Tạo tài khoản WebSec AI mới",
+    "register_button": "Đăng ký",
+    "login_link": "Đã có tài khoản? Đăng nhập"
+  },
+  "navigation": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard Quét",
+      "icon": "LayoutDashboard"
+    },
+    {
+      "id": "history",
+      "label": "Lịch sử & Báo cáo",
+      "icon": "History"
+    },
+    {
+      "id": "config",
+      "label": "Cấu hình Hệ thống",
+      "icon": "Settings"
+    }
+  ],
+  "vulnerability_severities": {
+    "CRITICAL": {
+      "label": "NGHIÊM TRỌNG",
+      "color": "red",
+      "hex": "#ef4444"
+    },
+    "HIGH": {
+      "label": "RỦI RO CAO",
+      "color": "orange",
+      "hex": "#f97316"
+    },
+    "MEDIUM": {
+      "label": "TRUNG BÌNH",
+      "color": "yellow",
+      "hex": "#eab308"
+    },
+    "LOW": {
+      "label": "RỦI RO THẤP",
+      "color": "emerald",
+      "hex": "#10b981"
+    }
+  },
+  "vulnerabilities": [
+    {
+      "id": "vuln-001",
+      "type": "CSRF",
+      "level": "MEDIUM",
+      "confidence": "83%",
+      "parameter": "form_submission",
+      "payload": "Missing Anti-CSRF Token",
+      "recommendation": "Sử dụng Anti-CSRF token cho các biểu mẫu biểu quyết và các yêu cầu thay đổi trạng thái (POST/PUT/DELETE). Thiết lập thuộc tính SameSite (Strict/Lax) cho tất cả các session cookie để ngăn chặn cookies tự động đính kèm qua trang thứ ba.",
+      "evidence": "Bằng chứng: Phát hiện form POST tại dòng 42 thiếu trường anti-csrf token ẩn và không có kiểm tra header Origin/Referer. Giao dịch kiểm thử thành công mà không có payload CSRF Token hợp lệ.",
+      "code_block": "<form action=\"/update_profile\" method=\"POST\">\n  <!-- ❌ THIẾU TOKEN BẢO MẬT -->\n  <input type=\"text\" name=\"username\" value=\"victim\" />\n  <input type=\"submit\" value=\"Save\" />\n</form>\n\n<!-- ✅ KHẮC PHỤC KHUYẾN NGHỊ -->\n<form action=\"/update_profile\" method=\"POST\">\n  <input type=\"hidden\" name=\"_csrf\" value=\"9b1deb4d3b7d4dd9...\">\n  <input type=\"text\" name=\"username\" value=\"victim\" />\n  <input type=\"submit\" value=\"Save\" />\n</form>"
+    },
+    {
+      "id": "vuln-002",
+      "type": "SQL Injection",
+      "level": "CRITICAL",
+      "confidence": "98%",
+      "parameter": "username",
+      "payload": "' OR '1'='1",
+      "recommendation": "Sử dụng các câu lệnh truy vấn được tham số hóa (Prepared Statements / Parameterized Queries) thay vì phương pháp ghép chuỗi (String Concatenation). Triển khai ORM (Object-Relational Mapping) an toàn để tự động vệ sinh đầu vào.",
+      "evidence": "Bằng chứng: Cơ sở dữ liệu PostgresSQL trả về toàn bộ dữ liệu người dùng khi kiểm thử tham số username với payload vượt qua bộ lọc cục bộ.",
+      "code_block": "// ❌ LỖ hỔNg GHÉP CHUỖI\nconst query = `SELECT * FROM users WHERE username = '${req.body.username}'`;\n\n// ✅ KHẮC PHỤC KHUYẾN NGHỊ\nconst query = 'SELECT * FROM users WHERE username = $1';\ndb.query(query, [req.body.username]);"
+    },
+    {
+      "id": "vuln-003",
+      "type": "Cross-Site Scripting (XSS)",
+      "level": "HIGH",
+      "confidence": "95%",
+      "parameter": "query",
+      "payload": "<script>alert('XSS')</script>",
+      "recommendation": "Thực hiện mã hóa thực thể HTML (HTML Entity Encoding) cho toàn bộ dữ liệu hiển thị lấy từ người dùng trước khi hiển thị trên trình duyệt. Thiết lập chính sách bảo mật nội dung chặt chẽ qua HTTP Content-Security-Policy (CSP) headers.",
+      "evidence": "Bằng chứng: Đoạn mã độc hại <script>alert('XSS')</script> được thực thi trực tiếp trên trang kết quả tìm kiếm của máy chủ mục tiêu.",
+      "code_block": "<!-- ❌ HIỂN THỊ TRỰC TIẾP LỖI -->\n<div>Kết quả tìm kiếm của: <%= query %></div>\n\n<!-- ✅ KHẮC PHỤC KHUYẾN NGHỊ -->\n<div>Kết quả tìm kiếm của: <%= escapeHTML(query) %></div>"
+    },
+    {
+      "id": "vuln-004",
+      "type": "Sensitive Data Exposure",
+      "level": "LOW",
+      "confidence": "88%",
+      "parameter": "headers",
+      "payload": "Server: Apache/2.4.41 (Ubuntu)",
+      "recommendation": "Tắt các header hiển thị chi tiết phiên bản của hệ điều hành và phần mềm máy chủ (Server signature). Thay đổi giá trị mặc định của header để bảo mật thông tin kiến trúc hạ tầng.",
+      "evidence": "Bằng chứng: Header phản hồi HTTP trả về thông tin chi tiết: 'Server: Apache/2.4.41 (Ubuntu) PHP/7.4.3'. Thông tin này có thể được dùng để tra cứu lỗ hổng CVE liên quan đến phiên bản cũ.",
+      "code_block": "# ❌ Apache mặc định\n# ServerTokens Full\n# ServerSignature On\n\n# ✅ KHẮC PHỤC KHUYẾN NGHỊ trong apache2.conf\nServerTokens ProductOnly\nServerSignature Off"
+    },
+    {
+      "id": "vuln-005",
+      "type": "Broken Authentication",
+      "level": "HIGH",
+      "confidence": "90%",
+      "parameter": "session_cookie",
+      "payload": "Weak Session ID Generation",
+      "recommendation": "Sử dụng các thư viện quản lý phiên làm việc uy tín đã qua kiểm thử (như express-session tích hợp cookie an toàn). Kích hoạt cờ HttpOnly, Secure, SameSite=Strict cho Cookie đại diện phiên.",
+      "evidence": "Bằng chứng: Id phiên làm việc session_cookie sinh ra có độ dài chỉ 8 ký tự số liên tiếp, dễ dàng bị tấn công vét cạn (brute-force) để cướp quyền truy cập tài khoản chỉ trong ~2000 requests.",
+      "code_block": "// ❌ SINH ID PHIÊN YẾU\nconst sessionId = Math.floor(Math.random() * 100000000);\n\n// ✅ KHẮC PHỤC KHUYẾN NGHỊ\nconst crypto = require('crypto');\nconst sessionId = crypto.randomBytes(32).toString('hex');"
+    }
+  ],
+  "scanning_logs": [
+    "Đang khởi tạo bộ quét bảo mật thông minh WebSec AI v3.0.0...",
+    "Liên kết dịch vụ phân tích học máy thông qua bộ phân loại Random Forest Classifier...",
+    "Đang phân tích cú pháp liên kết mục tiêu và cấu trúc sơ đồ trang...",
+    "Mục tiêu phản hồi trực tuyến qua phương thức HTTP/2 - Trạng thái: 200 OK",
+    "Khởi chạy Mô-đun Crawler: Đang rà quét các liên kết nội bộ...",
+    "Crawler phát hiện thành công 12 liên kết nội bộ và 3 biểu mẫu nhập liệu.",
+    "Đang tiến hành rà dựng dạng mẫu dữ liệu nhạy cảm thông tin...",
+    "Cấu hình AI xác định 5 điểm tương tác tiềm ẩn rủi ro tấn công...",
+    "Khởi động mô phỏng kiểm thử tấn công giả lập CSRF trên URL mục tiêu...",
+    "Mô hình Trí tuệ nhân tạo phân tích các biểu mẫu nhập liệu và phát hiện dấu hiệu bất thường...",
+    "⚠️ [WARNING] Phát hiện lỗ hổng nguy cơ cao: Biểu mẫu form_submission không chứa CSRF Token bảo mật!",
+    "Đang rà quét tiêu đề HTTP an toàn: Phát hiện thiếu hụt CSP, X-Frame-Options...",
+    "⚠️ [WARNING] Phát hiện lộ lọt thông tin máy chủ qua HTTP Response Headers.",
+    "Bắt đầu phân tích học máy sâu để tính toán chỉ số tin cậy an toàn...",
+    "Thực hiện tổng hợp dữ liệu, đóng gói kết quả quét sơ bộ.",
+    "✅ [SUCCESS] Tiến trình rà quét lỗ hổng hoàn tất. Báo cáo phân tích đã sẵn sàng!"
+  ],
+  "system_config": {
+    "default_crawler": {
+      "max_depth": 3,
+      "delay_ms": 500
+    },
+    "ai_models": [
+      {
+        "id": "rf",
+        "name": "Random Forest Classifier (Tốc độ cao)",
+        "description": "Bộ phân loại học máy nhanh chóng, tối ưu hóa phát hiện các mẫu biểu mẫu rò rỉ dữ liệu hoặc thiếu token, giảm thiểu sai sót (false positive)."
+      },
+      {
+        "id": "xgb",
+        "name": "XGBoost Cyber-Shield Model (Chính xác nhất)",
+        "description": "Mô hình tăng cường độ phủ quét, thích hợp phân tích luồng tham số API phức tạp, nâng cao khả năng rà soát lỗ hổng Injection."
+      },
+      {
+        "id": "dnn",
+        "name": "Deep Neural Network Multi-class AI (Chuyên sâu)",
+        "description": "Mạng nơ-ron đa lớp phân tích ngôn ngữ tự nhiên đầu vào, rà quét mã độc, phát hiện Zero-day trong mã nguồn."
+      }
+    ]
+  },
+  "sample_history": [
+    {
+      "id": "SCN-014",
+      "target": "http://demo.testfire.net",
+      "time": "2026-06-11 17:13:53",
+      "errors_found": 1,
+      "status": "Completed",
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 0
+      },
+      "vulnerabilities": ["vuln-001"]
+    },
+    {
+      "id": "SCN-013",
+      "target": "https://vulnerable-ecommerce.vn/api/user",
+      "time": "2026-06-10 09:44:21",
+      "errors_found": 3,
+      "status": "Completed",
+      "severities": {
+        "critical": 1,
+        "high": 1,
+        "medium": 0,
+        "low": 1
+      },
+      "vulnerabilities": ["vuln-002", "vuln-003", "vuln-004"]
+    },
+    {
+      "id": "SCN-012",
+      "target": "https://portal-hr-test.com/login",
+      "time": "2026-06-08 14:22:10",
+      "errors_found": 2,
+      "status": "Completed",
+      "severities": {
+        "critical": 0,
+        "high": 2,
+        "medium": 0,
+        "low": 0
+      },
+      "vulnerabilities": ["vuln-003", "vuln-005"]
+    }
+  ]
+}

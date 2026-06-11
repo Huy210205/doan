@@ -1,0 +1,6 @@
+{
+  "name": "WebSec AI",
+  "description": "Hệ thống Quét và Phân tích Lỗ hổng Bảo mật Web bằng Trí tuệ Nhân tạo AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
