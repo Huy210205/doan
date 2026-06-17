@@ -69,11 +69,4 @@ docker compose exec backend python ml/generate_data.py
 docker compose exec backend python ml/train_model.py
 ```
 
-## 👥 Dành Cho Làm Việc Nhóm (Git workflow)
-- Clone code về máy: `git clone <link-repo>`
-- Khi lấy code mới nhất về: `git pull origin main`
-- Khi code có thay đổi cấu trúc DB: Nhớ restart lại docker bằng `docker compose down` và `docker compose up -d`.
-- Nếu có update thư viện UI: Nhớ chạy lại `npm install` trong thư mục `frontend`.
 
----
-*Dự án phát triển phục vụ đồ án môn học. Team size: 5 members.*
