@@ -50,10 +50,10 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
       {/* Top Header Panel */}
       <div className="flex items-center justify-between border-b border-cyber-border/40 pb-5">
         <div>
-          <h1 className="text-2xl font-bold font-display tracking-tight text-white">
+          <h1 className="text-2xl font-bold font-display tracking-tight text-cyber-text-main">
             Cấu hình Hệ thống & AI
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-cyber-text-muted mt-1">
             Thiết lập chiều sâu thu thập dữ liệu và tinh chỉnh bộ phân loại trí tuệ nhân tạo.
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
 
       {/* Save Success Toast */}
       {successToast && (
-        <div id="save-success-toast" className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-300 text-sm flex items-center gap-3 animate-fadeIn cyber-glow-success">
+        <div id="save-success-toast" className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-emerald-305 text-sm flex items-center gap-3 animate-fadeIn cyber-glow-success font-semibold">
           <div className="h-2 w-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
           <span>Lưu cấu hình hệ thống và tham số bộ phân loại trí tuệ nhân tạo thành công!</span>
         </div>
@@ -70,14 +70,14 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
       {/* Main Settings Form Container */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Section 1: Cấu hình Crawler */}
-        <div className="bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="glass-panel rounded-2xl p-6 shadow-xl space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-cyber-border/40 text-cyber-blue font-semibold">
             <span className="text-sm font-mono tracking-wider">1. Cấu hình Crawler</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 block font-mono">
+              <label className="text-xs font-semibold text-cyber-text-muted block font-mono">
                 Độ sâu tối đa (Max Depth)
               </label>
               <input
@@ -86,7 +86,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 min="1"
                 max="10"
                 required
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue transition-all"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-cyber-border/80 transition-all"
                 value={maxDepth}
                 onChange={(e) => setMaxDepth(Number(e.target.value))}
               />
@@ -102,7 +102,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 min="0"
                 max="5000"
                 required
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue transition-all"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-cyber-border/80 transition-all"
                 value={delayMs}
                 onChange={(e) => setDelayMs(Number(e.target.value))}
               />
@@ -111,7 +111,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
         </div>
  
         {/* Section 2: Mô hình Trí tuệ Nhân tạo (AI) */}
-        <div className="bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="glass-panel rounded-2xl p-6 shadow-xl space-y-5">
           <div className="flex items-center gap-2.5 pb-3 border-b border-cyber-border/40 text-cyber-blue font-semibold">
             <span className="text-sm font-mono tracking-wider">2. Mô hình Trí tuệ Nhân tạo (AI)</span>
           </div>
@@ -123,7 +123,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
               </label>
               <select
                 id="ai-model-select"
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue transition-all cursor-pointer"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue hover:border-cyber-border/80 transition-all cursor-pointer"
                 value={selectedModelId}
                 onChange={(e) => setSelectedModelId(e.target.value)}
               >
@@ -136,14 +136,14 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
             </div>
  
             {/* Model short breakdown notes */}
-            <div className="p-4 bg-cyber-card-light border border-cyber-border rounded-xl flex gap-3 text-xs text-cyber-text-main leading-relaxed">
+            <div className="p-4 bg-cyber-card-light/40 border border-cyber-border rounded-xl flex gap-3 text-xs text-cyber-text-main leading-relaxed shadow-sm">
               <Cpu className="w-5 h-5 text-cyber-blue shrink-0 mt-0.5" />
               <div>
-                <strong className="text-cyber-text-main block mb-0.5">Mô tả đặc điểm mô hình:</strong>
+                <strong className="text-cyber-text-main block mb-0.5 font-bold">Mô tả đặc điểm mô hình:</strong>
                 {system_config.ai_models.find(m => m.id === selectedModelId)?.description}
               </div>
             </div>
-
+ 
             {/* Retrain checkbox */}
             <label className="flex items-start gap-3 select-none cursor-pointer group">
               <input
@@ -154,10 +154,10 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 onChange={(e) => setRetrainOnNewData(e.target.checked)}
               />
               <div className="text-xs">
-                <span className="text-slate-200 font-medium group-hover:text-white transition-colors block">
+                <span className="text-cyber-text-main font-semibold group-hover:text-cyber-blue transition-colors block">
                   Tự động học lại (Retrain) khi có dữ liệu mới
                 </span>
-                <span className="text-slate-400 block mt-0.5">
+                <span className="text-cyber-text-muted block mt-0.5">
                   Tải dữ liệu quét an toàn lên bộ nhớ đệm an toàn để huấn luyện bổ sung, nâng cao độ chính xác theo thời gian.
                 </span>
               </div>
@@ -166,8 +166,8 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
         </div>
 
         {/* Section 3: Thông báo & Báo cáo */}
-        <div className="bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-cyber-border/40 text-[#c026d3] text-purple-400 font-semibold">
+        <div className="glass-panel rounded-2xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-cyber-border/40 text-purple-650 dark:text-purple-400 font-semibold">
             <span className="text-sm font-mono tracking-wider">3. Thông báo & Báo cáo</span>
           </div>
 
@@ -183,7 +183,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 id="report-email-input"
                 type="email"
                 required
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue transition-all"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-cyber-border/80 transition-all"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@company.com"
@@ -198,7 +198,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
             id="save-config-btn"
             type="submit"
             disabled={isSaving}
-            className="bg-cyber-blue hover:bg-blue-600 border border-blue-500/20 text-white font-bold text-xs uppercase tracking-wider py-4 px-8 rounded-xl flex items-center gap-2.5 cursor-pointer shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] duration-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-cyber-blue hover:bg-blue-600 border border-blue-500/20 text-white font-bold text-xs uppercase tracking-wider py-4 px-8 rounded-xl flex items-center gap-2.5 cursor-pointer shadow-lg hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] duration-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? (
               <>

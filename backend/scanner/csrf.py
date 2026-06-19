@@ -1,21 +1,26 @@
-import requests
-
 class CSRFScanner:
     def __init__(self):
-        self.session = requests.Session()
+        pass
 
-    def scan(self, url: str):
+    def scan(self, endpoint):
         vulns = []
-        try:
-            # Mock scanning logic for demo
-            # A real CSRF scanner would parse HTML forms and check for missing anti-CSRF tokens
-            if "login" in url or "update" in url or "post" in url:
-                # Fake finding a CSRF vulnerability on state-changing forms
+        if endpoint.get('type') == 'form' and endpoint.get('method', '').upper() == 'POST':
+            # Check if any param looks like a CSRF token
+            anti_csrf_keywords = ['csrf', 'token', 'authenticity', 'nonce']
+            has_token = False
+            for param in endpoint.get('params', {}).keys():
+                param_lower = param.lower()
+                if any(keyword in param_lower for keyword in anti_csrf_keywords):
+                    has_token = True
+                    break
+                    
+            if not has_token:
                 vulns.append({
+                    "url": endpoint['url'],
                     "type": "CSRF",
-                    "payload": "Missing Anti-CSRF Token",
-                    "param": "form_submission"
+                    "param": "N/A",
+                    "payload": "Missing Anti-CSRF Token in POST form",
+                    "severity": "Medium",
+                    "evidence": "No parameter matching common CSRF token names found in form submission."
                 })
-        except Exception:
-            pass
         return vulns

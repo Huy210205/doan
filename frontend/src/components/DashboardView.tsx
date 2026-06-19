@@ -160,8 +160,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       const percentage = item.count / total;
       const angle = percentage * 360;
       const startAngle = accumulatedAngle;
-      const endAngle = accumulatedAngle + angle;
-      accumulatedAngle = endAngle;
+      // If a single slice covers 100%, we shift endAngle slightly to prevent overlapping coordinates which breaks SVG path rendering.
+      const endAngle = accumulatedAngle + (percentage === 1 ? 359.99 : angle);
+      accumulatedAngle = accumulatedAngle + angle;
 
       const radius = 35;
       const cx = 50;
@@ -172,7 +173,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       const x2 = cx + radius * Math.cos((endAngle - 90) * Math.PI / 180);
       const y2 = cy + radius * Math.sin((endAngle - 90) * Math.PI / 180);
 
-      const largeArc = angle > 180 ? 1 : 0;
+      const largeArc = (percentage === 1 || angle > 180) ? 1 : 0;
       const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
       return {
@@ -209,7 +210,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       </div>
 
       {/* Target URL Selector Input and Console Controls Section */}
-      <div className="bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div className="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex flex-col gap-4">
@@ -219,7 +220,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             </span>
             <div>
               <h3 className="text-sm font-semibold text-cyber-text-main">Khởi chạy AI Scanner</h3>
-              <p className="text-xs text-cyber-text-muted">Phân tích sâu mã nguồn và cấu hình máy chủ để tìm ra lỗ hổng zero-day.</p>
+              <p className="text-xs text-cyber-text-muted">Phân tích sâu mã nguồn và cấu hình máy chủ để tìm ra lỗ hổng bảo mật.</p>
             </div>
           </div>
 
@@ -238,7 +239,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 id="target-url-input"
                 type="text"
                 required
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl pl-12 pr-4 py-4 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 transition-all placeholder-slate-400 dark:placeholder-slate-600"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl pl-12 pr-4 py-4 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-cyber-border/80 transition-all placeholder-slate-400 dark:placeholder-slate-500"
                 placeholder="Nhập URL mục tiêu"
                 value={targetUrl}
                 onChange={(e) => setTargetUrl(e.target.value)}
@@ -251,9 +252,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 id="toggle-logs-btn"
                 type="button"
                 onClick={() => setShowConsole(!showConsole)}
-                className={`px-5 py-4 rounded-xl border font-semibold text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+                className={`px-5 py-4 rounded-xl border font-semibold text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${
                   showConsole
-                    ? 'bg-purple-500/10 dark:bg-purple-950/20 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/15 dark:hover:bg-purple-950/30'
+                    ? 'bg-purple-500/10 dark:bg-purple-950/20 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/15 dark:hover:bg-purple-950/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                     : 'bg-cyber-card-light border-cyber-border text-cyber-text-muted hover:text-cyber-text-main hover:border-cyber-blue/40'
                 }`}
               >
@@ -265,7 +266,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 id="scan-now-btn"
                 type="submit"
                 disabled={isScanning}
-                className="bg-cyber-blue hover:bg-blue-600 border border-blue-500/20 text-white px-7 py-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 cursor-pointer hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] duration-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white px-7 py-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 cursor-pointer hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] border border-blue-450/10 shadow-md duration-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
               >
                 <Play className="w-4 h-4 stroke-[3]" />
                 <span>Quét Ngay</span>
@@ -276,8 +277,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
         {/* Floating Console Window Overlay inside panel */}
         {showConsole && (
-          <div id="logs-console" className="mt-5 border border-cyber-border rounded-xl overflow-hidden bg-black/90 font-mono text-xs shadow-inner">
-            <div className="flex items-center justify-between px-4 py-2 bg-[#0c0f18] border-b border-cyber-border/70">
+          <div id="logs-console" className="mt-5 border border-cyber-border rounded-xl overflow-hidden bg-black/95 font-mono text-xs shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-[#090d16] border-b border-cyber-border/75">
               <span className="text-cyan-400 font-bold tracking-widest text-[10px] flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping" />
                 CONSOLE TERMINAL :: ACTIVE
@@ -285,15 +286,15 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
               <button
                 id="clear-logs-btn"
                 onClick={() => setActiveConsoleLogs([])}
-                className="text-[10px] text-slate-500 hover:text-slate-300 underline uppercase"
+                className="text-[10px] text-slate-500 hover:text-slate-350 underline uppercase cursor-pointer"
               >
                 Xóa Log
               </button>
             </div>
             <div className="p-4 h-48 overflow-y-auto space-y-1.5 scroll-smooth text-slate-300 select-all">
               {activeConsoleLogs.length === 0 ? (
-                <div className="text-slate-600 flex flex-col items-center justify-center h-full gap-2">
-                  <Terminal className="w-6 h-6 stroke-1" />
+                <div className="text-slate-650 flex flex-col items-center justify-center h-full gap-2 font-semibold">
+                  <Terminal className="w-6 h-6 stroke-1 text-slate-600" />
                   <span>Terminal sẵn sàng. Nhấn quét để hiển thị tiến trình.</span>
                 </div>
               ) : (
@@ -322,14 +323,14 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
       {/* Progress Bars for Scan under active scan */}
       {isScanning && (
-        <div className="w-full bg-cyber-card-light border border-cyber-border/60 rounded-xl p-4 flex items-center gap-4 animate-pulse">
+        <div className="w-full glass-panel rounded-xl p-4 flex items-center gap-4 animate-fadeIn shadow-md">
           <div className="flex-1">
             <div className="flex justify-between text-xs font-mono text-cyber-text-muted mb-1.5 font-semibold">
               <span>Đang kết nối API quét mục tiêu và chạy mô hình {systemConfig.selected_model_id === 'xgb' ? 'XGBoost' : 'Random Forest Classifier'}...</span>
               <span className="text-cyber-blue font-bold">{scanProgress}%</span>
             </div>
-            <div className="w-full bg-cyber-border/50 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-cyber-blue h-1.5 rounded-full transition-all duration-150" style={{ width: `${scanProgress}%` }} />
+            <div className="w-full bg-cyber-border/40 rounded-full h-1.5 overflow-hidden">
+              <div className="animate-shimmer h-1.5 rounded-full transition-all duration-150" style={{ width: `${scanProgress}%` }} />
             </div>
           </div>
         </div>
@@ -340,7 +341,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Critical */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'CRITICAL' ? null : 'CRITICAL')}
-          className={`bg-cyber-card border rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative ${
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${
             selectedSeverityFilter === 'CRITICAL'
               ? 'border-red-500/50 bg-red-500/5 dark:bg-red-950/15 cyber-glow-error translate-y-[-2px]'
               : 'border-cyber-border hover:border-red-500/25 hover:bg-red-500/5 dark:hover:bg-red-950/5'
@@ -363,7 +364,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* High */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'HIGH' ? null : 'HIGH')}
-          className={`bg-cyber-card border rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer ${
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${
             selectedSeverityFilter === 'HIGH'
               ? 'border-orange-500/50 bg-orange-500/5 dark:bg-orange-950/15 cyber-glow-warn translate-y-[-2px]'
               : 'border-cyber-border hover:border-orange-500/25 hover:bg-orange-500/5 dark:hover:bg-orange-950/5'
@@ -383,7 +384,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Medium */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'MEDIUM' ? null : 'MEDIUM')}
-          className={`bg-cyber-card border rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer ${
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${
             selectedSeverityFilter === 'MEDIUM'
               ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-950/15 cyber-glow-warn translate-y-[-2px]'
               : 'border-cyber-border hover:border-yellow-500/25 hover:bg-yellow-500/5 dark:hover:bg-yellow-950/5'
@@ -403,7 +404,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Low */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'LOW' ? null : 'LOW')}
-          className={`bg-cyber-card border rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative ${
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${
             selectedSeverityFilter === 'LOW'
               ? 'border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-950/15 cyber-glow-success translate-y-[-2px]'
               : 'border-cyber-border hover:border-emerald-500/10 hover:bg-emerald-500/5 dark:hover:bg-[#10192e]'
@@ -422,7 +423,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       </div>
 
       {selectedSeverityFilter && (
-        <div className="flex items-center justify-between bg-cyber-blue/5 border border-cyber-blue/20 rounded-xl p-3 px-4">
+        <div className="flex items-center justify-between bg-cyber-blue/5 border border-cyber-blue/20 rounded-xl p-3 px-4 shadow-sm animate-fadeIn">
           <span className="text-xs text-cyber-text-muted">
             Đang lọc theo mức độ rủi ro: <strong className="text-cyber-blue uppercase font-mono">{selectedSeverityFilter}</strong>
           </span>
@@ -438,47 +439,47 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       {/* Main Bottom Assessment area: Pie + Table */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left item: Donut chart of vulns distribution (4 columns on lg) */}
-        <div className="lg:col-span-4 bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl relative min-h-[400px] flex flex-col justify-between">
+        <div className="lg:col-span-4 glass-panel rounded-2xl p-6 shadow-xl relative min-h-[400px] flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-semibold text-cyber-text-main mb-1.5 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#3b82f6]" />
+              <Layers className="w-4 h-4 text-cyber-blue" />
               Phân bổ Lỗ hổng
             </h3>
             <p className="text-xs text-cyber-text-muted mb-6">Tỉ lệ phân bố mức độ bảo mật phát hiện.</p>
           </div>
 
           <div className="flex items-center justify-center my-6 relative flex-1">
-            {donut.empty ? (
-              <div className="text-center text-cyber-text-muted flex flex-col items-center gap-3 py-10">
-                <ShieldCheck className="w-12 h-12 text-cyber-text-muted/65 stroke-[1]" />
-                <p className="text-xs font-mono">Chưa tìm thấy lỗi bảo mật để phân tích biểu đồ.</p>
+            <div className="relative w-48 h-48 flex items-center justify-center">
+              <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="35"
+                  fill="transparent"
+                  strokeWidth="11"
+                  className={donut.empty ? "stroke-emerald-500/20 dark:stroke-emerald-500/10" : "stroke-cyber-border"}
+                />
+                {!donut.empty && donut.slices?.map((slice, idx) => (
+                  <path
+                    key={idx}
+                    d={slice.pathData}
+                    fill={slice.color}
+                    className="cursor-pointer hover:opacity-85 transition-opacity"
+                  />
+                ))}
+                {/* Center cutout to make it a donut and adapt beautifully to light/dark themes */}
+                <circle cx="50" cy="50" r="28" className="fill-cyber-bg transition-colors duration-300" />
+              </svg>
+              {/* Text overlay in center */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-cyber-text-main leading-none">
+                  {critCount + highCount + medCount + lowCount}
+                </span>
+                <span className="text-[9px] font-mono uppercase tracking-widest text-cyber-text-muted mt-1 font-bold">
+                  {donut.empty ? 'An toàn' : 'Tổng số lỗi'}
+                </span>
               </div>
-            ) : (
-              <div className="relative w-48 h-48 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                  <circle cx="50" cy="50" r="35" fill="transparent" strokeWidth="11" className="stroke-cyber-border" />
-                  {donut.slices?.map((slice, idx) => (
-                    <path
-                      key={idx}
-                      d={slice.pathData}
-                      fill={slice.color}
-                      className="cursor-pointer hover:opacity-85 transition-opacity"
-                    />
-                  ))}
-                  {/* Center cutout to make it a donut and adapt beautifully to light/dark themes */}
-                  <circle cx="50" cy="50" r="28" className="fill-cyber-card" />
-                </svg>
-                {/* Text overlay in center */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-cyber-text-main leading-none">
-                    {critCount + highCount + medCount + lowCount}
-                  </span>
-                  <span className="text-[9px] font-mono uppercase tracking-widest text-cyber-text-muted mt-1">
-                    Tổng số lỗi
-                  </span>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Slices legend table */}
@@ -502,7 +503,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         </div>
 
         {/* Right item: Findings Table detail accordion list (8 columns on lg) */}
-        <div className="lg:col-span-8 bg-cyber-card border border-cyber-border/80 rounded-2xl p-6 shadow-xl min-h-[400px]">
+        <div className="lg:col-span-8 glass-panel rounded-2xl p-6 shadow-xl min-h-[400px]">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-semibold text-cyber-text-main">Báo cáo Chi tiết & Gợi ý AI</h3>
@@ -532,19 +533,19 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 
                 switch (finding.level) {
                   case 'CRITICAL':
-                    levelBadgeClass = 'bg-red-500/10 border-red-500/30 text-red-500 dark:text-red-400';
+                    levelBadgeClass = 'bg-red-500/10 border-red-500/30 text-red-650 dark:text-red-400';
                     levelTextClass = 'text-red-500';
                     break;
                   case 'HIGH':
-                    levelBadgeClass = 'bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-400';
+                    levelBadgeClass = 'bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-400';
                     levelTextClass = 'text-orange-500';
                     break;
                   case 'MEDIUM':
-                    levelBadgeClass = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400';
+                    levelBadgeClass = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400';
                     levelTextClass = 'text-yellow-500';
                     break;
                   case 'LOW':
-                    levelBadgeClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+                    levelBadgeClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400';
                     levelTextClass = 'text-emerald-500';
                     break;
                 }
@@ -552,17 +553,17 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 return (
                   <div
                     key={finding.id}
-                    className={`border rounded-xl transition-all duration-300 overflow-hidden ${
+                    className={`border rounded-xl transition-all duration-350 overflow-hidden ${
                       isExpanded
-                        ? 'border-cyber-blue bg-cyber-card-light/45 backdrop-blur-sm'
-                        : 'border-cyber-border hover:border-cyber-blue/30 dark:hover:border-slate-700 bg-transparent'
+                        ? 'border-cyber-blue bg-cyber-blue/5 shadow-[0_4px_20px_rgba(59,130,246,0.05)] backdrop-blur-sm'
+                        : 'border-cyber-border hover:border-cyber-blue/30 dark:hover:border-slate-700 bg-transparent hover:scale-[1.005]'
                     }`}
                   >
                     {/* Accordion Row Header */}
                     <button
                        id={`finding-row-${finding.id}`}
                        onClick={() => setExpandedVulnId(isExpanded ? null : finding.id)}
-                       className="w-full text-left px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
+                       className="w-full text-left px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-cyber-text-main/[0.01] transition-all"
                      >
                       <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2.5">
@@ -574,7 +575,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                           </span>
                           <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5" title="Độ tin cậy của AI">
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                            Độ tin cậy: <b className="font-bold text-cyan-700 dark:text-cyan-300">{finding.confidence}</b>
+                            Độ tin cậy: <b className="font-bold text-cyan-700 dark:text-cyan-305">{finding.confidence}</b>
                           </span>
                         </div>
                         
@@ -583,7 +584,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                             Tham số: <span className="bg-cyber-input-bg border border-cyber-border/40 px-1.5 py-0.5 rounded text-yellow-600 dark:text-yellow-400 font-bold">{finding.parameter || 'N/A'}</span>
                           </span>
                           <span className="truncate max-w-sm">
-                            Vỏ bọc payload: <span className="text-rose-600 dark:text-rose-400 font-bold">{finding.payload}</span>
+                            Payload: <span className="text-rose-600 dark:text-rose-455 font-bold">{finding.payload}</span>
                           </span>
                         </div>
                       </div>
@@ -602,7 +603,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
                     {/* Accordion Row Content Dropdown */}
                     {isExpanded && (
-                      <div className="px-5 pb-5 pt-2 border-t border-cyber-border/60 bg-cyber-card-light/45 animate-slideDown max-w-full">
+                      <div className="px-5 pb-5 pt-2 border-t border-cyber-border/60 bg-cyber-card-light/20 animate-slideDown max-w-full">
                         <div className="space-y-4">
                           {/* Overview vulnerability metadata info */}
                           <div className="space-y-1">
@@ -615,7 +616,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                           </div>
 
                           {/* Proof of Evidence block */}
-                          <div className="space-y-1 p-3.5 bg-red-500/5 dark:bg-red-950/10 border border-red-500/20 rounded-xl">
+                          <div className="space-y-1 p-3.5 bg-red-500/5 dark:bg-red-950/10 border border-red-500/20 rounded-xl shadow-inner">
                             <h4 className="text-[11px] font-bold uppercase font-mono tracking-wider text-red-500 flex items-center gap-1.5">
                               <AlertCircle className="w-3.5 h-3.5" />
                               Bằng chứng rà quét (Scanner proof)
@@ -630,7 +631,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                             <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-cyber-text-main">
                               Mẫu mã code điều chỉnh an toàn (Cyber Fix Block)
                             </h4>
-                            <div className="border border-cyber-border rounded-xl bg-slate-950 dark:bg-black p-4 font-mono text-[11px] text-slate-300 relative group max-w-full overflow-x-auto overflow-y-hidden">
+                            <div className="border border-cyber-border rounded-xl bg-slate-950 dark:bg-black p-4 font-mono text-[11px] text-slate-350 relative group max-w-full overflow-x-auto overflow-y-hidden shadow-2xl">
                               <span className="absolute top-2.5 right-3.5 text-[9px] text-indigo-400 border border-indigo-400/30 px-1.5 py-0.5 rounded font-bold uppercase bg-indigo-950/30">
                                 REMEDIATION
                               </span>

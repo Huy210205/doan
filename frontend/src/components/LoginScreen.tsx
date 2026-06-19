@@ -98,17 +98,17 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       <div className="absolute bottom-1/3 right-1/4 w-[250px] h-[250px] bg-purple-500/5 dark:bg-purple-900/10 rounded-full blur-3xl pointer-events-none" />
       
       {/* Dynamic Grid Background Overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.1)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-35 dark:opacity-30 pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-35 dark:opacity-30 pointer-events-none" />
 
       {/* Main card */}
-      <div className="w-full max-w-md bg-cyber-card border border-cyber-border/80 rounded-2xl p-8 md:p-10 shadow-2xl relative z-10 transition-all duration-300 hover:border-cyber-blue/30 cyber-glow">
+      <div className="w-full max-w-md glass-panel rounded-2xl p-8 md:p-10 shadow-2xl relative z-10 transition-all duration-300 hover:border-cyber-blue/40 hover:shadow-[0_8px_32px_rgba(59,130,246,0.12)]">
         
         {/* Animated Accent Line */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-right from-transparent via-cyan-500 to-transparent rounded-t-2xl" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyber-blue to-transparent rounded-t-2xl" />
 
         {/* Brand Shield Icon */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-cyber-blue/10 border border-cyber-blue/40 flex items-center justify-center mb-4 transition-transform duration-500 hover:rotate-12 group">
+          <div className="w-16 h-16 rounded-2xl bg-cyber-blue/10 border border-cyber-blue/30 flex items-center justify-center mb-4 transition-transform duration-500 hover:rotate-12 group shadow-[0_4px_15px_rgba(59,130,246,0.1)]">
             <Shield className="w-8 h-8 text-cyber-blue stroke-[1.5] transition-all duration-300 group-hover:scale-110" />
           </div>
           <h1 className="text-2xl font-bold font-display tracking-tight text-cyber-text-main text-center">
@@ -146,7 +146,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 type="email"
                 required
                 disabled={mode === 'otp'}
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 transition-all placeholder-slate-400 dark:placeholder-slate-600 font-mono disabled:opacity-50"
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono disabled:opacity-50"
                 placeholder="example@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -168,7 +168,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   id="password-input"
                   type="password"
                   required
-                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 transition-all placeholder-slate-400 dark:placeholder-slate-600 font-mono"
+                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
                   placeholder="••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -192,7 +192,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   type="text"
                   required
                   maxLength={6}
-                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 transition-all placeholder-slate-400 dark:placeholder-slate-600 font-mono tracking-widest text-center"
+                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono tracking-widest text-center"
                   placeholder="000000"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
@@ -206,7 +206,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             id="auth-submit-btn"
             type="submit"
             disabled={isLoading}
-            className="w-full mt-2 relative overflow-hidden group py-3.5 px-4 bg-cyber-blue hover:bg-blue-600 text-white font-medium text-sm rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+            className="w-full mt-2 relative overflow-hidden group py-3.5 px-4 bg-cyber-blue hover:bg-blue-600 text-white font-semibold text-sm rounded-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -231,7 +231,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 setErrorMsg('');
                 setSuccessMsg('');
               }}
-              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider hover:underline"
+              className="text-xs font-mono text-cyber-blue hover:text-blue-600 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors uppercase tracking-wider hover:underline"
             >
               Quay lại Đăng nhập
             </button>
@@ -243,7 +243,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 setErrorMsg('');
                 setSuccessMsg('');
               }}
-              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-wider hover:underline"
+              className="text-xs font-mono text-cyber-blue hover:text-blue-600 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors uppercase tracking-wider hover:underline"
             >
               {mode === 'register' ? auth.login_link : auth.register_link}
             </button>
