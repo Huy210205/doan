@@ -41,6 +41,7 @@ export interface SystemConfig {
   selected_model_id: string;
   retrain_on_new_data: boolean;
   pdf_report_email: string;
+  auth_header?: string;
 }
 
 export type ActiveTab = 'dashboard' | 'history' | 'config';

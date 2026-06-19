@@ -15,18 +15,22 @@ from scanner.csrf import CSRFScanner
 from scanner.lfi import LFIScanner
 from models.classifier import AIClassifier
 from api.deps import get_current_user
+import time
 
 router = APIRouter()
 classifier = AIClassifier()
 
 class ScanRequest(BaseModel):
     url: str
+    delay_ms: int = 0
+    max_depth: int = 1
+    auth_header: str = ""
 
-def perform_scan(scan_id: int, target_url: str, db: Session):
+def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, auth_header: str, db: Session):
     try:
         # 1. Crawl
-        print(f"Starting general scan for: {target_url}")
-        crawler = Crawler(target_url, max_depth=1)
+        print(f"Starting general scan for: {target_url} (Max Depth: {max_depth})")
+        crawler = Crawler(target_url, max_depth=max_depth, auth_header=auth_header)
         crawler.crawl()
         endpoints = crawler.get_endpoints()
         
@@ -39,13 +43,17 @@ def perform_scan(scan_id: int, target_url: str, db: Session):
         print(f"Found {len(endpoints)} endpoints. Scanning {len(endpoints_to_scan)} (prioritizing forms).")
         
         # 2. Scan
-        sqli = SQLiScanner()
-        xss = XSSScanner()
-        csrf = CSRFScanner()
-        lfi = LFIScanner()
+        sqli = SQLiScanner(auth_header)
+        xss = XSSScanner(auth_header)
+        csrf = CSRFScanner(auth_header)
+        lfi = LFIScanner(auth_header)
         all_vulns = []
         
         for endpoint in endpoints_to_scan:
+            # Rate limiting (Delay)
+            if delay_ms > 0:
+                time.sleep(delay_ms / 1000.0)
+                
             sqli_vulns = sqli.scan(endpoint)
             xss_vulns = xss.scan(endpoint)
             csrf_vulns = csrf.scan(endpoint)
@@ -60,7 +68,7 @@ def perform_scan(scan_id: int, target_url: str, db: Session):
         for v in all_vulns:
             # Fake response status for AI prediction
             status_code = 500 if v['type'] == 'SQLi' else 200
-            severity = classifier.predict_severity(v['type'], v['payload'], status_code)
+            severity, confidence = classifier.predict_with_confidence(v['type'], v['payload'], status_code)
             
             # Đảm bảo lấy đúng các trường đã được cải tiến trong máy quét
             db_vuln = Vulnerability(
@@ -70,7 +78,7 @@ def perform_scan(scan_id: int, target_url: str, db: Session):
                 url=v.get('url', target_url),
                 parameter_name=v.get('param', 'unknown'),
                 payload=v['payload'],
-                confidence=round(random.uniform(0.75, 0.99), 2),
+                confidence=confidence,
                 evidence=v.get('evidence', "Phát hiện dấu hiệu bất thường.")
             )
             db.add(db_vuln)
@@ -96,7 +104,7 @@ def create_scan(request: ScanRequest, db: Session = Depends(get_db), current_use
     db.commit()
     db.refresh(new_scan)
     
-    perform_scan(new_scan.id, request.url, db)
+    perform_scan(new_scan.id, request.url, request.delay_ms, request.max_depth, request.auth_header, db)
     db.refresh(new_scan)
     
     return {"message": "Scan completed", "scan_id": new_scan.id, "status": new_scan.status}

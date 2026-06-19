@@ -70,7 +70,12 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       
       // 1. Gửi yêu cầu Scan
       addLog(`[INFO] Gửi request đến /api/scan...`);
-      const scanRes = await api.post('/scan', { url: targetUrl });
+      const scanRes = await api.post('/scan', { 
+        url: targetUrl,
+        delay_ms: systemConfig.crawler.delay_ms,
+        max_depth: systemConfig.crawler.max_depth,
+        auth_header: systemConfig.auth_header || ""
+      });
       const scanId = scanRes.data.scan_id;
       
       addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);

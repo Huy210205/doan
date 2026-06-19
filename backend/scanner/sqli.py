@@ -1,16 +1,31 @@
 import requests
 import copy
+import os
 
 class SQLiScanner:
-    def __init__(self):
-        # Một số payload cơ bản để test
-        self.payloads = [
-            "'",
-            "' OR 1=1--",
-            '" OR 1=1--',
-            "1' OR '1'='1",
-            "admin' --"
-        ]
+    def __init__(self, auth_header=None):
+        self.headers = {}
+        if auth_header:
+            parts = auth_header.split(':', 1)
+            if len(parts) == 2:
+                self.headers[parts[0].strip()] = parts[1].strip()
+
+        # Load payloads từ file text
+        self.payloads = []
+        payload_file = os.path.join(os.path.dirname(__file__), 'payloads', 'sqli.txt')
+        if os.path.exists(payload_file):
+            with open(payload_file, 'r', encoding='utf-8') as f:
+                self.payloads = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        
+        if not self.payloads:
+            # Fallback
+            self.payloads = [
+                "'",
+                "' OR 1=1--",
+                '" OR 1=1--',
+                "1' OR '1'='1",
+                "admin' --"
+            ]
         
         # Các dấu hiệu lỗi SQL trong response
         self.sql_errors = [
@@ -41,9 +56,9 @@ class SQLiScanner:
                 print(f"Testing SQLi on: {url} | Param: {param_name} | Payload: {payload}")
                 try:
                     if method == "POST":
-                        response = requests.post(url, data=test_params, timeout=5)
+                        response = requests.post(url, data=test_params, headers=self.headers, timeout=5)
                     else:
-                        response = requests.get(url, params=test_params, timeout=5)
+                        response = requests.get(url, params=test_params, headers=self.headers, timeout=5)
                         
                     response_text = response.text.lower()
                     

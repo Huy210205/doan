@@ -1,13 +1,28 @@
 import requests
 import copy
+import os
 
 class XSSScanner:
-    def __init__(self):
-        self.payloads = [
-            "<script>alert('xss')</script>",
-            "\"<script>alert('xss')</script>",
-            "<img src=x onerror=alert('xss')>"
-        ]
+    def __init__(self, auth_header=None):
+        self.headers = {}
+        if auth_header:
+            parts = auth_header.split(':', 1)
+            if len(parts) == 2:
+                self.headers[parts[0].strip()] = parts[1].strip()
+
+        # Load payloads từ file text
+        self.payloads = []
+        payload_file = os.path.join(os.path.dirname(__file__), 'payloads', 'xss.txt')
+        if os.path.exists(payload_file):
+            with open(payload_file, 'r', encoding='utf-8') as f:
+                self.payloads = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        
+        if not self.payloads:
+            self.payloads = [
+                "<script>alert('xss')</script>",
+                "\"<script>alert('xss')</script>",
+                "<img src=x onerror=alert('xss')>"
+            ]
 
     def scan(self, endpoint):
         vulnerabilities = []
@@ -26,9 +41,9 @@ class XSSScanner:
                 print(f"Testing XSS on: {url} | Param: {param_name}")
                 try:
                     if method == "POST":
-                        response = requests.post(url, data=test_params, timeout=5)
+                        response = requests.post(url, data=test_params, headers=self.headers, timeout=5)
                     else:
-                        response = requests.get(url, params=test_params, timeout=5)
+                        response = requests.get(url, params=test_params, headers=self.headers, timeout=5)
                         
                     # Nếu payload xuất hiện nguyên vẹn trong response -> có khả năng lỗi XSS Reflected
                     if payload in response.text:

@@ -32,7 +32,8 @@ export default function App() {
     },
     selected_model_id: 'rf',
     retrain_on_new_data: true,
-    pdf_report_email: 'admin@company.com' // matches exactly Image 2 "admin@company.com"
+    pdf_report_email: 'admin@company.com',
+    auth_header: ''
   });
 
   // Handle document class modifications for Tailwind v4 selector adaptivity
