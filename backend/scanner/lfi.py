@@ -1,4 +1,5 @@
 import requests
+import copy
 
 class LFIScanner:
     def __init__(self):
@@ -8,20 +9,39 @@ class LFIScanner:
             "/etc/passwd"
         ]
 
-    def scan(self, url: str):
-        vulns = []
-        if "?" not in url:
-            return vulns
-            
-        try:
-            # Mock scanning logic for demo
-            if "file=" in url or "page=" in url or "doc=" in url:
-                # Fake finding an LFI vulnerability on file-fetching endpoints
-                vulns.append({
-                    "type": "LFI",
-                    "payload": "../../../../etc/passwd",
-                    "param": "file_path"
-                })
-        except Exception:
-            pass
-        return vulns
+    def scan(self, endpoint):
+        vulnerabilities = []
+        url = endpoint.get("url")
+        method = endpoint.get("method", "GET").upper()
+        params = endpoint.get("params", {})
+        
+        if not params:
+            return vulnerabilities
+
+        for param_name in params.keys():
+            for payload in self.payloads:
+                test_params = copy.deepcopy(params)
+                test_params[param_name] = payload
+                
+                print(f"Testing LFI on: {url} | Param: {param_name}")
+                try:
+                    if method == "POST":
+                        response = requests.post(url, data=test_params, timeout=5)
+                    else:
+                        response = requests.get(url, params=test_params, timeout=5)
+                        
+                    response_text = response.text.lower()
+                    if "root:x:0:0" in response_text or "[extensions]" in response_text:
+                        vulnerabilities.append({
+                            "url": url,
+                            "type": "LFI",
+                            "param": param_name,
+                            "payload": payload,
+                            "severity": "High",
+                            "evidence": "Sensitive file content (like /etc/passwd or win.ini) found in response."
+                        })
+                        break
+                except Exception as e:
+                    print(f"Request failed: {e}")
+                    
+        return vulnerabilities

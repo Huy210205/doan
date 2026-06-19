@@ -1,5 +1,8 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, Depends, HTTPException
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 import random
 
@@ -22,12 +25,18 @@ class ScanRequest(BaseModel):
 def perform_scan(scan_id: int, target_url: str, db: Session):
     try:
         # 1. Crawl
+        print(f"Starting general scan for: {target_url}")
         crawler = Crawler(target_url, max_depth=1)
         crawler.crawl()
-        urls = crawler.get_urls()
+        endpoints = crawler.get_endpoints()
         
-        # Limit to 3 URLs to speed up the demo
-        urls_to_scan = urls[:3] if urls else [target_url]
+        # Ưu tiên các form nhập liệu và link có tham số (vì đây là nơi dễ có lỗi nhất)
+        prioritized_endpoints = [e for e in endpoints if e['type'] == 'form' or len(e['params']) > 0]
+        other_endpoints = [e for e in endpoints if e not in prioritized_endpoints]
+        
+        # Kết hợp lại và giới hạn khoảng 30 endpoints để demo chạy mượt
+        endpoints_to_scan = (prioritized_endpoints + other_endpoints)[:30]
+        print(f"Found {len(endpoints)} endpoints. Scanning {len(endpoints_to_scan)} (prioritizing forms).")
         
         # 2. Scan
         sqli = SQLiScanner()
@@ -36,12 +45,12 @@ def perform_scan(scan_id: int, target_url: str, db: Session):
         lfi = LFIScanner()
         all_vulns = []
         
-        for url in urls_to_scan:
-            test_url = url if "?" in url else url + "?id=1"
-            sqli_vulns = sqli.scan(test_url)
-            xss_vulns = xss.scan(test_url)
-            csrf_vulns = csrf.scan(test_url)
-            lfi_vulns = lfi.scan(test_url)
+        for endpoint in endpoints_to_scan:
+            sqli_vulns = sqli.scan(endpoint)
+            xss_vulns = xss.scan(endpoint)
+            csrf_vulns = csrf.scan(endpoint)
+            lfi_vulns = lfi.scan(endpoint)
+            
             all_vulns.extend(sqli_vulns)
             all_vulns.extend(xss_vulns)
             all_vulns.extend(csrf_vulns)
@@ -53,15 +62,16 @@ def perform_scan(scan_id: int, target_url: str, db: Session):
             status_code = 500 if v['type'] == 'SQLi' else 200
             severity = classifier.predict_severity(v['type'], v['payload'], status_code)
             
+            # Đảm bảo lấy đúng các trường đã được cải tiến trong máy quét
             db_vuln = Vulnerability(
                 scan_id=scan_id,
                 vuln_type=v['type'],
                 severity=severity,
-                url=v.get('url', test_url),
+                url=v.get('url', target_url),
                 parameter_name=v.get('param', 'unknown'),
                 payload=v['payload'],
                 confidence=round(random.uniform(0.75, 0.99), 2),
-                evidence=f"Phát hiện dấu hiệu bất thường trong HTTP Response khi chèn payload: {v['payload'][:30]}..."
+                evidence=v.get('evidence', "Phát hiện dấu hiệu bất thường.")
             )
             db.add(db_vuln)
             
