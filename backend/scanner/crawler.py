@@ -4,11 +4,17 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, parse_qsl
 
 class Crawler:
-    def __init__(self, target_url, max_depth=2):
+    def __init__(self, target_url, max_depth=2, auth_header=None):
         self.target_url = target_url
         self.max_depth = max_depth
         self.visited = set()
         self.endpoints = [] # List of dicts
+        
+        self.headers = {}
+        if auth_header:
+            parts = auth_header.split(':', 1)
+            if len(parts) == 2:
+                self.headers[parts[0].strip()] = parts[1].strip()
 
     def is_same_domain(self, url):
         return urlparse(self.target_url).netloc == urlparse(url).netloc
@@ -35,7 +41,7 @@ class Crawler:
             return
 
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=self.headers, timeout=5)
             if response.status_code != 200:
                 return
                 

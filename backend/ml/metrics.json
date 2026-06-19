@@ -1,0 +1,10 @@
+{
+    "accuracy": 0.682,
+    "dataset_size": 2500,
+    "features_used": [
+        "vuln_type",
+        "payload_length",
+        "has_special_chars",
+        "response_status"
+    ]
+}

@@ -1,6 +1,10 @@
 class CSRFScanner:
-    def __init__(self):
-        pass
+    def __init__(self, auth_header=None):
+        self.headers = {}
+        if auth_header:
+            parts = auth_header.split(':', 1)
+            if len(parts) == 2:
+                self.headers[parts[0].strip()] = parts[1].strip()
 
     def scan(self, endpoint):
         vulns = []

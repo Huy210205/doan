@@ -1,0 +1,6 @@
+<script>alert('xss')</script>
+<img src=x onerror=alert('xss')>
+<svg/onload=alert('xss')>
+" onmouseover=alert('xss') "
+javascript:alert(1)
+<body onload=alert('xss')>

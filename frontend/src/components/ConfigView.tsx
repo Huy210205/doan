@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Cpu, Mail, Save, Loader2, Info } from 'lucide-react';
 import { SystemConfig } from '../types';
 import contentData from '../data/contentData.json';
+import api from '../api';
 
 interface ConfigViewProps {
   initialConfig: SystemConfig;
@@ -16,8 +17,17 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
   const [selectedModelId, setSelectedModelId] = useState(initialConfig.selected_model_id);
   const [retrainOnNewData, setRetrainOnNewData] = useState(initialConfig.retrain_on_new_data);
   const [email, setEmail] = useState(initialConfig.pdf_report_email);
+  const [authHeader, setAuthHeader] = useState(initialConfig.auth_header || '');
   const [isSaving, setIsSaving] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
+  const [aiMetrics, setAiMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    // Tự động load AI metrics
+    api.get('/ai/metrics').then(res => {
+      setAiMetrics(res.data);
+    }).catch(err => console.log('No AI metrics yet'));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +43,8 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
         },
         selected_model_id: selectedModelId,
         retrain_on_new_data: retrainOnNewData,
-        pdf_report_email: email
+        pdf_report_email: email,
+        auth_header: authHeader
       });
       setIsSaving(false);
       setSuccessToast(true);
@@ -107,6 +118,21 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 onChange={(e) => setDelayMs(Number(e.target.value))}
               />
             </div>
+            
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-semibold text-cyber-text-muted block font-mono">
+                Xác thực (Custom Header)
+              </label>
+              <input
+                id="auth-header-input"
+                type="text"
+                placeholder="VD: Cookie: session_id=123 hoặc Authorization: Bearer abc..."
+                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm font-mono rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:border-cyber-border/80 transition-all"
+                value={authHeader}
+                onChange={(e) => setAuthHeader(e.target.value)}
+              />
+              <p className="text-[10px] text-cyber-text-muted mt-1">Dùng để quét các trang yêu cầu đăng nhập. Cú pháp: `Tên-Header: Giá-trị`.</p>
+            </div>
           </div>
         </div>
  
@@ -119,20 +145,11 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-cyber-text-muted block font-mono">
-                Chọn Mô hình Phân loại
+                Mô hình Phân loại Đang Sử Dụng
               </label>
-              <select
-                id="ai-model-select"
-                className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue hover:border-cyber-border/80 transition-all cursor-pointer"
-                value={selectedModelId}
-                onChange={(e) => setSelectedModelId(e.target.value)}
-              >
-                {system_config.ai_models.map((model) => (
-                  <option key={model.id} value={model.id} className="bg-cyber-card text-cyber-text-main">
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+              <div className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none transition-all cursor-default flex items-center font-bold">
+                {system_config.ai_models.find(m => m.id === selectedModelId)?.name || "Random Forest Classifier"}
+              </div>
             </div>
  
             {/* Model short breakdown notes */}
@@ -143,25 +160,21 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
                 {system_config.ai_models.find(m => m.id === selectedModelId)?.description}
               </div>
             </div>
- 
-            {/* Retrain checkbox */}
-            <label className="flex items-start gap-3 select-none cursor-pointer group">
-              <input
-                id="retrain-checkbox"
-                type="checkbox"
-                className="mt-1 h-4 w-4 rounded border-cyber-border text-cyber-blue focus:ring-1 focus:ring-cyber-blue bg-black/40 cursor-pointer"
-                checked={retrainOnNewData}
-                onChange={(e) => setRetrainOnNewData(e.target.checked)}
-              />
-              <div className="text-xs">
-                <span className="text-cyber-text-main font-semibold group-hover:text-cyber-blue transition-colors block">
-                  Tự động học lại (Retrain) khi có dữ liệu mới
-                </span>
-                <span className="text-cyber-text-muted block mt-0.5">
-                  Tải dữ liệu quét an toàn lên bộ nhớ đệm an toàn để huấn luyện bổ sung, nâng cao độ chính xác theo thời gian.
-                </span>
+
+            {/* AI Metrics Display */}
+            {aiMetrics && !aiMetrics.error && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest mb-1">Độ chính xác (Accuracy)</div>
+                  <div className="text-lg font-mono font-black text-emerald-600 dark:text-emerald-500">{(aiMetrics.accuracy * 100).toFixed(2)}%</div>
+                </div>
+                <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-center">
+                  <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-widest mb-1">Mẫu dữ liệu học</div>
+                  <div className="text-lg font-mono font-black text-cyan-600 dark:text-cyan-500">{aiMetrics.dataset_size} mẫu</div>
+                </div>
               </div>
-            </label>
+            )}
+
           </div>
         </div>
 

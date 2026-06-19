@@ -4,6 +4,7 @@ import { ScanHistoryItem, Vulnerability } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
 import { generatePDFReport } from '../utils/pdfExport';
+import { generateHTMLReport } from '../utils/htmlExport';
 
 interface HistoryViewProps {
   activeTab?: string;
@@ -89,6 +90,27 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
     } catch (err) {
       console.error('Failed to generate PDF', err);
       alert('Lỗi tải báo cáo PDF!');
+    } finally {
+      setDownloadingPdfId(null);
+    }
+  };
+
+  const handleHtml = async (item: any) => {
+    setDownloadingPdfId(item.id + '_html'); // Dùng chung state loading cho tiện
+    try {
+      const res = await api.get(`/scans/${item.raw_id}/vulnerabilities`);
+      const mappedFindings: Vulnerability[] = res.data.map((v: any) => ({
+        id: `vuln-${v.id}`,
+        type: v.type,
+        level: v.severity.toUpperCase(),
+        parameter: v.param,
+        payload: v.payload,
+        recommendation: v.recommendation,
+      }));
+      generateHTMLReport(item.url, mappedFindings, item.id);
+    } catch (err) {
+      console.error('Failed to generate HTML', err);
+      alert('Lỗi tải báo cáo HTML!');
     } finally {
       setDownloadingPdfId(null);
     }
@@ -218,6 +240,15 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                         >
                           {downloadingPdfId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                           <span>PDF</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleHtml(item)}
+                          disabled={downloadingPdfId === item.id + '_html' || item.status === 'running'}
+                          className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 hover:text-white transition-all duration-200 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 hover:scale-105 active:scale-95"
+                        >
+                          {downloadingPdfId === item.id + '_html' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+                          <span>HTML</span>
                         </button>
                       </div>
                     </td>
