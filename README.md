@@ -16,40 +16,32 @@ AI WebSec Scanner là một hệ thống phân tích và quét lỗ hổng bảo
 
 
 
-## 🚀 Hướng Dẫn Cài Đặt Dành Cho Thành Viên
+## 🚀 Hướng Dẫn Cài Đặt Dành Cho Thành Viên (Môi trường Dev)
 
-Để chạy dự án, hãy làm theo các bước sau đây. Bạn cần chạy song song cả 2 phần: Backend (Database & API) và Frontend (Giao diện Web).
+Hiện tại toàn bộ hệ thống (Frontend, Backend, và Database) đã được cấu hình chung vào một file Docker Compose. Bạn chỉ cần 1 lệnh duy nhất để chạy tất cả!
 
-### 1. Khởi chạy Backend & Cơ sở dữ liệu (Docker)
-Yêu cầu đã cài đặt sẵn [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+Yêu cầu máy tính phải cài đặt và **đang mở sẵn** ứng dụng [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+### 1. Khởi chạy toàn bộ hệ thống
+Mở Terminal tại thư mục gốc của dự án (`d:\doan`) và chạy lệnh:
 
 ```bash
-# Mở Terminal tại gốc dự án (d:\doan)
-# 1. Khởi tạo Database và API Backend tự động
-docker compose up -d
+docker-compose up --build
 ```
+*(Nếu muốn chạy ngầm, bạn có thể thêm cờ `-d`: `docker-compose up -d --build`)*
+
 Lệnh trên sẽ tự động:
-- Khởi tạo Database **PostgreSQL** mới tinh.
-- Chạy **Flyway** để tự động tạo cấu trúc các bảng (Users, Scans...).
-- Chạy **Backend FastAPI** tại cổng `8000`.
+1. Tự động build **Backend FastAPI** và cài đặt các thư viện Python.
+2. Tự động build **Frontend ReactJS** và cài đặt các package Node.js.
+3. Khởi tạo Database **PostgreSQL** mới.
+4. Chạy **Flyway** để tự động tạo cấu trúc các bảng (Users, Scans...).
+5. Khởi động **pgAdmin** để bạn có thể xem Database trực quan.
 
-*Lưu ý: Bảng điều khiển quản lý DB (pgAdmin) sẽ chạy ở `http://localhost:5050` (Tài khoản: `admin@admin.com` / `admin`). Cổng API Backend là `http://localhost:8000/docs`*
+### 2. Truy cập ứng dụng
+Sau khi lệnh chạy xong và hiển thị log thành công, mở trình duyệt truy cập:
+- **Giao diện Web chính (Frontend):** `http://localhost:3000`
 
-### 2. Khởi chạy Frontend (ReactJS)
-Yêu cầu máy tính có cài sẵn [Node.js](https://nodejs.org/).
-
-```bash
-# 1. Chuyển vào thư mục frontend
-cd frontend
-
-# 2. Cài đặt các thư viện (chỉ chạy 1 lần sau khi clone)
-npm install
-
-# 3. Chạy giao diện web
-npm run dev
-```
-
-Sau khi chạy xong, mở trình duyệt truy cập: **`http://localhost:5173`** để bắt đầu sử dụng dự án!
+- **Quản lý Database (pgAdmin):** `http://localhost:5050` *(Tài khoản: `admin@admin.com` / `admin`)*
 
 ## 📧 Lưu ý về Đăng ký Tài khoản (Mã OTP)
 Hệ thống có tính năng gửi Email chứa mã OTP xác thực khi đăng ký. Tuy nhiên, để tiện cho quá trình phát triển nhóm, hệ thống đã bật sẵn **Chế độ Demo (Fallback)**:
