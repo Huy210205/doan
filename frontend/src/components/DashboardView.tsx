@@ -18,7 +18,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
   const [showConsole, setShowConsole] = useState(false);
   const [activeConsoleLogs, setActiveConsoleLogs] = useState<string[]>([]);
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string | null>(null);
-  
+
   const [activeFindings, setActiveFindings] = useState<Vulnerability[]>([]);
   const [expandedVulnId, setExpandedVulnId] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string>('');
@@ -49,7 +49,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
     setShowConsole(true);
     setActiveConsoleLogs([]);
     setScanError('');
-    
+
     setCritCount(0);
     setHighCount(0);
     setMedCount(0);
@@ -67,26 +67,26 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
     try {
       addLog(`[INFO] Khởi tạo quá trình quét mục tiêu: ${targetUrl}`);
-      
+
       // 1. Gửi yêu cầu Scan
       addLog(`[INFO] Gửi request đến /api/scan...`);
-      const scanRes = await api.post('/scan', { 
+      const scanRes = await api.post('/scan', {
         url: targetUrl,
         delay_ms: systemConfig.crawler.delay_ms,
         max_depth: systemConfig.crawler.max_depth,
         auth_header: systemConfig.auth_header || ""
       });
       const scanId = scanRes.data.scan_id;
-      
+
       addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
-      
+
       // 2. Lấy danh sách Vulnerabilities
       const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
       const vulnsData = vulnsRes.data;
-      
+
       clearInterval(scanInterval);
       setScanProgress(100);
-      
+
       // Map API data to Frontend Vulnerability type
       const mappedFindings: Vulnerability[] = vulnsData.map((v: any) => ({
         id: `vuln-${v.id}`,
@@ -103,7 +103,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
       setActiveFindings(mappedFindings);
       addLog(`[INFO] Phân tích hoàn tất. Đã nạp ${mappedFindings.length} lỗ hổng lên giao diện.`);
-      
+
       // Compute severities
       let crit = 0, high = 0, med = 0, low = 0;
       mappedFindings.forEach(v => {
@@ -133,7 +133,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         vulnerabilities: mappedFindings.map(v => v.id)
       };
       onAddHistoryItem(historyItem);
-      
+
     } catch (err: any) {
       clearInterval(scanInterval);
       const errorMsg = err.response?.data?.detail || err.message;
@@ -205,7 +205,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             Quét và phát hiện lỗ hổng ứng dụng thông qua dịch vụ AI học phân loại (ML Classifier).
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -217,7 +217,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       {/* Target URL Selector Input and Console Controls Section */}
       <div className="glass-panel rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3.5 mb-1">
             <span className="p-2 rounded-xl bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue">
@@ -230,9 +230,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
           </div>
 
           {scanError && (
-             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-sm">
-                {scanError}
-             </div>
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-sm">
+              {scanError}
+            </div>
           )}
 
           <form onSubmit={handleStartScan} className="flex flex-col lg:flex-row gap-3">
@@ -251,22 +251,21 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 disabled={isScanning}
               />
             </div>
-            
+
             <div className="flex gap-2 shrink-0">
               <button
                 id="toggle-logs-btn"
                 type="button"
                 onClick={() => setShowConsole(!showConsole)}
-                className={`px-5 py-4 rounded-xl border font-semibold text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${
-                  showConsole
+                className={`px-5 py-4 rounded-xl border font-semibold text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${showConsole
                     ? 'bg-purple-500/10 dark:bg-purple-950/20 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/15 dark:hover:bg-purple-950/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                     : 'bg-cyber-card-light border-cyber-border text-cyber-text-muted hover:text-cyber-text-main hover:border-cyber-blue/40'
-                }`}
+                  }`}
               >
                 <Terminal className="w-4 h-4" />
                 <span>Logs {isScanning && `(${scanProgress}%)`}</span>
               </button>
-              
+
               <button
                 id="scan-now-btn"
                 type="submit"
@@ -346,11 +345,10 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Critical */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'CRITICAL' ? null : 'CRITICAL')}
-          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${
-            selectedSeverityFilter === 'CRITICAL'
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'CRITICAL'
               ? 'border-red-500/50 bg-red-500/5 dark:bg-red-950/15 cyber-glow-error translate-y-[-2px]'
               : 'border-cyber-border hover:border-red-500/25 hover:bg-red-500/5 dark:hover:bg-red-950/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-mono font-bold tracking-wider text-red-500/80 uppercase">
@@ -369,11 +367,10 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* High */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'HIGH' ? null : 'HIGH')}
-          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${
-            selectedSeverityFilter === 'HIGH'
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'HIGH'
               ? 'border-orange-500/50 bg-orange-500/5 dark:bg-orange-950/15 cyber-glow-warn translate-y-[-2px]'
               : 'border-cyber-border hover:border-orange-500/25 hover:bg-orange-500/5 dark:hover:bg-orange-950/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-mono font-bold tracking-wider text-orange-500/80 uppercase">
@@ -389,11 +386,10 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Medium */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'MEDIUM' ? null : 'MEDIUM')}
-          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${
-            selectedSeverityFilter === 'MEDIUM'
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'MEDIUM'
               ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-950/15 cyber-glow-warn translate-y-[-2px]'
               : 'border-cyber-border hover:border-yellow-500/25 hover:bg-yellow-500/5 dark:hover:bg-yellow-950/5'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-mono font-bold tracking-wider text-yellow-500/80 uppercase">
@@ -409,11 +405,10 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         {/* Low */}
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'LOW' ? null : 'LOW')}
-          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${
-            selectedSeverityFilter === 'LOW'
+          className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'LOW'
               ? 'border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-950/15 cyber-glow-success translate-y-[-2px]'
               : 'border-cyber-border hover:border-emerald-500/10 hover:bg-emerald-500/5 dark:hover:bg-[#10192e]'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between mb-4">
             <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-500/80 uppercase">
@@ -514,7 +509,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
               <h3 className="text-sm font-semibold text-cyber-text-main">Báo cáo Chi tiết & Gợi ý AI</h3>
               <p className="text-xs text-cyber-text-muted mt-1">Dữ liệu kiểm thử chứng minh lỗ hổng kết hợp mã sửa đổi an toàn.</p>
             </div>
-            
+
             <span className="text-xs font-mono text-cyber-text-muted font-medium">
               Tìm thấy: <strong className="text-cyber-text-main font-bold">{filteredFindings.length}</strong> rủi ro
             </span>
@@ -532,10 +527,10 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             <div className="space-y-4">
               {filteredFindings.map((finding) => {
                 const isExpanded = expandedVulnId === finding.id;
-                
+
                 let levelBadgeClass = '';
                 let levelTextClass = '';
-                
+
                 switch (finding.level) {
                   case 'CRITICAL':
                     levelBadgeClass = 'bg-red-500/10 border-red-500/30 text-red-650 dark:text-red-400';
@@ -558,18 +553,17 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 return (
                   <div
                     key={finding.id}
-                    className={`border rounded-xl transition-all duration-350 overflow-hidden ${
-                      isExpanded
+                    className={`border rounded-xl transition-all duration-350 overflow-hidden ${isExpanded
                         ? 'border-cyber-blue bg-cyber-blue/5 shadow-[0_4px_20px_rgba(59,130,246,0.05)] backdrop-blur-sm'
                         : 'border-cyber-border hover:border-cyber-blue/30 dark:hover:border-slate-700 bg-transparent hover:scale-[1.005]'
-                    }`}
+                      }`}
                   >
                     {/* Accordion Row Header */}
                     <button
-                       id={`finding-row-${finding.id}`}
-                       onClick={() => setExpandedVulnId(isExpanded ? null : finding.id)}
-                       className="w-full text-left px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-cyber-text-main/[0.01] transition-all"
-                     >
+                      id={`finding-row-${finding.id}`}
+                      onClick={() => setExpandedVulnId(isExpanded ? null : finding.id)}
+                      className="w-full text-left px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-cyber-text-main/[0.01] transition-all"
+                    >
                       <div className="space-y-1.5 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2.5">
                           <span className="font-bold text-cyber-text-main text-sm">
@@ -583,7 +577,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                             Độ tin cậy: <b className="font-bold text-cyan-700 dark:text-cyan-305">{finding.confidence}</b>
                           </span>
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-cyber-text-muted font-mono">
                           <span className="truncate">
                             Tham số: <span className="bg-cyber-input-bg border border-cyber-border/40 px-1.5 py-0.5 rounded text-yellow-600 dark:text-yellow-400 font-bold">{finding.parameter || 'N/A'}</span>

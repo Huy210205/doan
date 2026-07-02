@@ -57,6 +57,20 @@
   border: 1px solid var(--cyber-border);
 }
 
+/* User block background */
+.user-block-bg {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+.user-block-bg:hover {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+.dark .user-block-bg {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+.dark .user-block-bg:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
 /* Custom glow and utility classes for high-fidelity cybersecurity look */
 .cyber-glow {
   box-shadow: 0 4px 24px rgba(59, 130, 246, var(--cyber-glow-strength));
