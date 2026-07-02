@@ -86,8 +86,10 @@ export default function Sidebar({ activeTab, onTabChange, session, onSessionUpda
           </div>
         </div>
 
-        {/* User Greeting Block */}
-        <div id="sidebar-user-block" className="px-6 py-5 border-b border-cyber-border/80 bg-cyber-card-light dark:bg-[#0a0e1b]/30 group transition-colors">
+        <div
+          id="sidebar-user-block"
+          className="px-6 py-5 border-b border-cyber-border/60 group transition-all duration-300 user-block-bg"
+        >
           <div className="flex items-center justify-between gap-2">
             <div 
               className="flex items-center gap-3 overflow-hidden cursor-pointer flex-1"
@@ -98,11 +100,11 @@ export default function Sidebar({ activeTab, onTabChange, session, onSessionUpda
               }}
               title="Nhấn để chỉnh sửa hồ sơ"
             >
-              <div className="w-8 h-8 rounded-full bg-cyber-bg border border-cyber-border flex items-center justify-center shrink-0 overflow-hidden group-hover:border-cyber-blue/50 transition-colors">
+              <div className="w-9 h-9 rounded-full bg-white dark:bg-cyber-bg border-2 border-cyber-blue/30 dark:border-cyber-blue/20 flex items-center justify-center shrink-0 overflow-hidden group-hover:border-cyber-blue/60 transition-all shadow-sm">
                 {session.logo ? (
                   <img src={session.logo} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-4 h-4 text-cyber-text-muted group-hover:text-cyber-blue transition-colors" />
+                  <User className="w-4 h-4 text-cyber-blue group-hover:text-cyber-blue transition-colors" />
                 )}
               </div>
               <div className="overflow-hidden">
