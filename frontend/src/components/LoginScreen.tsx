@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, Loader2, ArrowRight, Key } from 'lucide-react';
+import { Shield, Mail, Lock, Loader2, ArrowRight, Key, User } from 'lucide-react';
 import contentData from '../data/contentData.json';
 import api from '../api';
 
+import { UserSession } from '../types';
+
 interface LoginScreenProps {
-  onLoginSuccess: (email: string, token: string) => void;
+  onLoginSuccess: (sessionData: Omit<UserSession, 'isAuthenticated'>) => void;
 }
 
 type AuthMode = 'login' | 'register' | 'otp';
@@ -14,6 +16,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   
@@ -40,8 +43,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           setIsLoading(false);
           return;
         }
-        await api.post('/auth/register', { email, password });
-        setSuccessMsg('Đăng ký thành công! Vui lòng kiểm tra email và nhập mã OTP.');
+        const res = await api.post('/auth/register', { email, password, username });
+        setSuccessMsg(res.data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email và nhập mã OTP.');
         setMode('otp');
       } else if (mode === 'otp') {
         if (!otp) {
@@ -60,10 +63,18 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           return;
         }
         const res = await api.post('/auth/login', { email, password });
-        onLoginSuccess(res.data.email, res.data.access_token);
+        onLoginSuccess({
+          email: res.data.email,
+          token: res.data.access_token,
+          username: res.data.username,
+          logo: res.data.logo
+        });
       }
     } catch (err: any) {
-      if (err.response?.data?.detail) {
+      if (err.response?.status === 403) {
+        setSuccessMsg(err.response.data.detail);
+        setMode('otp');
+      } else if (err.response?.data?.detail) {
         setErrorMsg(err.response.data.detail);
       } else {
         setErrorMsg('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
@@ -147,7 +158,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 required
                 disabled={mode === 'otp'}
                 className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono disabled:opacity-50"
-                placeholder="example@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -169,9 +179,29 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   type="password"
                   required
                   className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
-                  placeholder="••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Username input (Register only) */}
+          {mode === 'register' && (
+            <div className="space-y-1.5 animate-fadeIn">
+              <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">
+                Tên người dùng (Tùy chọn)
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 dark:text-slate-500">
+                  <User className="w-4 h-4" />
+                </span>
+                <input
+                  id="username-input"
+                  type="text"
+                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
             </div>
@@ -193,7 +223,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   required
                   maxLength={6}
                   className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono tracking-widest text-center"
-                  placeholder="000000"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                 />

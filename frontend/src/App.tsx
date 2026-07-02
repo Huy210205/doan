@@ -9,8 +9,8 @@ import contentData from './data/contentData.json';
 
 export default function App() {
   const [session, setSession] = useState<UserSession>({
-    email: 'huyd57100@gmail.com',
-    isAuthenticated: true // Set to true by default to match screenshots instantly, can click Logout
+    email: '',
+    isAuthenticated: false
   });
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -92,8 +92,8 @@ export default function App() {
     }
   }, []);
 
-  const handleLoginSuccess = (email: string, token: string) => {
-    const updatedSession = { email, isAuthenticated: true, token };
+  const handleLoginSuccess = (sessionData: Omit<UserSession, 'isAuthenticated'>) => {
+    const updatedSession = { ...sessionData, isAuthenticated: true };
     setSession(updatedSession);
     localStorage.setItem('websec_session', JSON.stringify(updatedSession));
     setActiveTab('dashboard');
@@ -142,7 +142,11 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        userEmail={session.email}
+        session={session}
+        onSessionUpdate={(newSession) => {
+          setSession(newSession);
+          localStorage.setItem('websec_session', JSON.stringify(newSession));
+        }}
         onLogout={handleLogout}
         theme={theme}
         onToggleTheme={toggleTheme}
