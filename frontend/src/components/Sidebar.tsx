@@ -1,19 +1,59 @@
-import React from 'react';
-import { Shield, LayoutDashboard, History, Settings, LogOut, User, Sun, Moon } from 'lucide-react';
-import { ActiveTab } from '../types';
+import React, { useState, useRef } from 'react';
+import { Shield, LayoutDashboard, History, Settings, LogOut, User, Sun, Moon, Camera, X, Loader2 } from 'lucide-react';
+import { ActiveTab, UserSession } from '../types';
 import contentData from '../data/contentData.json';
+import api from '../api';
 
 interface SidebarProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
-  userEmail: string;
+  session: UserSession;
+  onSessionUpdate: (session: UserSession) => void;
   onLogout: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
 
-export default function Sidebar({ activeTab, onTabChange, userEmail, onLogout, theme, onToggleTheme }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabChange, session, onSessionUpdate, onLogout, theme, onToggleTheme }: SidebarProps) {
   const { app } = contentData;
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editUsername, setEditUsername] = useState(session.username || '');
+  const [editLogo, setEditLogo] = useState(session.logo || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('File quá lớn, vui lòng chọn file dưới 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      await api.put('/auth/update-profile', { username: editUsername, logo: editLogo }, {
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      onSessionUpdate({ ...session, username: editUsername, logo: editLogo });
+      setIsProfileModalOpen(false);
+    } catch (error) {
+      alert('Không thể cập nhật cấu hình hồ sơ. Vui lòng thử lại.');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const displayUser = session.username || session.email;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -47,16 +87,28 @@ export default function Sidebar({ activeTab, onTabChange, userEmail, onLogout, t
         </div>
 
         {/* User Greeting Block */}
-        <div id="sidebar-user-block" className="px-6 py-5 border-b border-cyber-border/80 bg-cyber-card-light dark:bg-[#0a0e1b]/30">
+        <div id="sidebar-user-block" className="px-6 py-5 border-b border-cyber-border/80 bg-cyber-card-light dark:bg-[#0a0e1b]/30 group transition-colors">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 rounded-full bg-cyber-bg border border-cyber-border flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 text-cyber-text-muted" />
+            <div 
+              className="flex items-center gap-3 overflow-hidden cursor-pointer flex-1"
+              onClick={() => {
+                setEditUsername(session.username || '');
+                setEditLogo(session.logo || '');
+                setIsProfileModalOpen(true);
+              }}
+              title="Nhấn để chỉnh sửa hồ sơ"
+            >
+              <div className="w-8 h-8 rounded-full bg-cyber-bg border border-cyber-border flex items-center justify-center shrink-0 overflow-hidden group-hover:border-cyber-blue/50 transition-colors">
+                {session.logo ? (
+                  <img src={session.logo} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 text-cyber-text-muted group-hover:text-cyber-blue transition-colors" />
+                )}
               </div>
               <div className="overflow-hidden">
                 <p className="text-[10px] text-cyber-text-muted font-semibold tracking-wide uppercase">Xin chào,</p>
-                <p className="text-xs text-cyber-text-main font-mono truncate font-semibold" title={userEmail}>
-                  {userEmail}
+                <p className="text-xs text-cyber-text-main font-mono truncate font-semibold group-hover:text-cyber-blue transition-colors" title={session.email}>
+                  {displayUser}
                 </p>
               </div>
             </div>
@@ -111,6 +163,66 @@ export default function Sidebar({ activeTab, onTabChange, userEmail, onLogout, t
           <span>Đăng xuất</span>
         </button>
       </div>
+      
+      {/* Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-cyber-bg border border-cyber-border rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+            <button 
+              onClick={() => setIsProfileModalOpen(false)}
+              className="absolute top-4 right-4 text-cyber-text-muted hover:text-cyber-text-main"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold font-display text-cyber-text-main mb-6">Chỉnh sửa hồ sơ</h3>
+            
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="flex flex-col items-center gap-3 mb-6">
+                <div 
+                  className="w-20 h-20 rounded-full border-2 border-cyber-border flex items-center justify-center overflow-hidden relative group cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {editLogo ? (
+                    <img src={editLogo} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-8 h-8 text-cyber-text-muted" />
+                  )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={handleLogoChange}
+                />
+                <p className="text-xs text-cyber-text-muted">Nhấn vào ảnh để thay đổi</p>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">Tên người dùng</label>
+                <input
+                  type="text"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="w-full mt-4 bg-cyber-blue hover:bg-blue-600 text-white font-semibold text-sm rounded-lg py-2.5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Lưu thay đổi
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -48,6 +48,8 @@ export type ActiveTab = 'dashboard' | 'history' | 'config';
 
 export interface UserSession {
   email: string;
+  username?: string;
+  logo?: string;
   isAuthenticated: boolean;
   token?: string;
 }
