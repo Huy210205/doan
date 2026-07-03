@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 import random
+import time
+import concurrent.futures
 
-from core.database import get_db
+from core.database import get_db, SessionLocal
 from models.schema import Scan, Vulnerability, RemediationKB, User, get_vn_time
 from scanner.crawler import Crawler
 from scanner.sqli import SQLiScanner
@@ -12,7 +14,6 @@ from scanner.csrf import CSRFScanner
 from scanner.lfi import LFIScanner
 from models.classifier import AIClassifier
 from api.deps import get_current_user
-import time
 
 router = APIRouter()
 classifier = AIClassifier()
@@ -23,7 +24,8 @@ class ScanRequest(BaseModel):
     max_depth: int = 1
     auth_header: str = ""
 
-def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, auth_header: str, db: Session):
+def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, auth_header: str):
+    db = SessionLocal()
     try:
         # 1. Crawl
         print(f"Starting general scan for: {target_url} (Max Depth: {max_depth})")
@@ -35,8 +37,8 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         prioritized_endpoints = [e for e in endpoints if e['type'] == 'form' or len(e['params']) > 0]
         other_endpoints = [e for e in endpoints if e not in prioritized_endpoints]
         
-        # Kết hợp lại và giới hạn khoảng 30 endpoints để demo chạy mượt
-        endpoints_to_scan = (prioritized_endpoints + other_endpoints)[:30]
+        # Kết hợp lại (ưu tiên form trước) và quét toàn bộ (giới hạn 100 để tránh tràn bộ nhớ/thời gian quá dài)
+        endpoints_to_scan = (prioritized_endpoints + other_endpoints)[:100]
         print(f"Found {len(endpoints)} endpoints. Scanning {len(endpoints_to_scan)} (prioritizing forms).")
         
         # 2. Scan
@@ -46,20 +48,29 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         lfi = LFIScanner(auth_header)
         all_vulns = []
         
-        for endpoint in endpoints_to_scan:
-            # Rate limiting (Delay)
+        def scan_endpoint(endpoint):
+            # Thêm jitter nhỏ để tránh các luồng đập request cùng 1 mili-giây
+            jitter = random.uniform(0.1, 0.5)
             if delay_ms > 0:
-                time.sleep(delay_ms / 1000.0)
-                
-            sqli_vulns = sqli.scan(endpoint)
-            xss_vulns = xss.scan(endpoint)
-            csrf_vulns = csrf.scan(endpoint)
-            lfi_vulns = lfi.scan(endpoint)
+                time.sleep((delay_ms / 1000.0) + jitter)
+            else:
+                time.sleep(jitter)
             
-            all_vulns.extend(sqli_vulns)
-            all_vulns.extend(xss_vulns)
-            all_vulns.extend(csrf_vulns)
-            all_vulns.extend(lfi_vulns)
+            vulns = []
+            vulns.extend(sqli.scan(endpoint))
+            vulns.extend(xss.scan(endpoint))
+            vulns.extend(csrf.scan(endpoint))
+            vulns.extend(lfi.scan(endpoint))
+            return vulns
+
+        # Sử dụng 3 luồng  để tránh làm server mục tiêu bị sập hoặc drop request (gây lọt lỗi)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_ep = {executor.submit(scan_endpoint, ep): ep for ep in endpoints_to_scan}
+            for future in concurrent.futures.as_completed(future_to_ep):
+                try:
+                    all_vulns.extend(future.result())
+                except Exception as exc:
+                    print(f'Endpoint generated an exception: {exc}')
             
         # 3. Save vulnerabilities
         for v in all_vulns:
@@ -93,18 +104,19 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         if scan_obj:
             scan_obj.status = "Failed"
             db.commit()
+    finally:
+        db.close()
 
 @router.post("/scan")
-def create_scan(request: ScanRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_scan(request: ScanRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     new_scan = Scan(target_url=request.url, status="running", user_id=current_user.id)
     db.add(new_scan)
     db.commit()
     db.refresh(new_scan)
     
-    perform_scan(new_scan.id, request.url, request.delay_ms, request.max_depth, request.auth_header, db)
-    db.refresh(new_scan)
+    background_tasks.add_task(perform_scan, new_scan.id, request.url, request.delay_ms, request.max_depth, request.auth_header)
     
-    return {"message": "Scan completed", "scan_id": new_scan.id, "status": new_scan.status}
+    return {"message": "Scan started", "scan_id": new_scan.id, "status": new_scan.status}
 
 @router.get("/scans")
 def get_scans(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

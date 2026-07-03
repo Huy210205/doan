@@ -56,14 +56,14 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         if (scans.length > 0) {
           const savedScanId = localStorage.getItem('lastViewedScanId');
           let scanToLoad = scans[0].raw_id; // Default to newest
-          
+
           if (savedScanId) {
             const parsedId = parseInt(savedScanId, 10);
             if (scans.some((s: any) => s.raw_id === parsedId)) {
               scanToLoad = parsedId;
             }
           }
-          
+
           await loadScanData(scanToLoad, scans, false);
         }
       } catch (err) {
@@ -72,36 +72,98 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         setIsLoadingHistory(false);
       }
     };
-    
+
     fetchInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const pollScanStatus = (scanId: number) => {
+    const scanInterval = setInterval(() => {
+      setScanProgress((prev) => {
+        const nextProgress = prev + Math.floor(Math.random() * 5) + 2;
+        return nextProgress >= 90 ? 90 : nextProgress;
+      });
+    }, 500);
+
+    const checkInterval = setInterval(async () => {
+      try {
+        const res = await api.get('/scans');
+        const scans = res.data;
+        setPastScans(scans);
+
+        const currentScan = scans.find((s: any) => s.raw_id === scanId);
+        if (currentScan && currentScan.status !== 'running') {
+          clearInterval(checkInterval);
+          clearInterval(scanInterval);
+          setScanProgress(100);
+
+          if (currentScan.status === 'Completed') {
+            addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
+            const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
+            const vulnsData = vulnsRes.data;
+            const { mappedFindings, crit, high, med, low } = processFindings(vulnsData);
+
+            // Update History
+            const historyItem: ScanHistoryItem = {
+              id: `SCN-${String(scanId).padStart(3, '0')}`,
+              target: currentScan.url,
+              time: new Date().toISOString().replace('T', ' ').substring(0, 19),
+              errors_found: mappedFindings.length,
+              status: 'Completed',
+              severities: { critical: crit, high: high, medium: med, low: low },
+              vulnerabilities: mappedFindings.map(v => v.id)
+            };
+            onAddHistoryItem(historyItem);
+          } else {
+            setScanError('Quá trình quét thất bại.');
+            addLog(`[ERROR] Quá trình quét thất bại.`);
+          }
+
+          setCurrentViewScanId(scanId);
+          localStorage.setItem('lastViewedScanId', scanId.toString());
+          setIsScanning(false);
+        }
+      } catch (err: any) {
+        clearInterval(checkInterval);
+        clearInterval(scanInterval);
+        setScanError(`Lỗi khi kiểm tra trạng thái: ${err.message}`);
+        setIsScanning(false);
+      }
+    }, 2000);
+  };
 
   const loadScanData = async (scanId: number, scansList = pastScans, updateUrl = true) => {
     try {
       setIsScanning(true);
       setScanProgress(0);
       setScanError('');
-      addLog(`[INFO] Đang nạp dữ liệu từ lịch sử quét SCN-${String(scanId).padStart(3, '0')}...`);
 
       const scanInfo = scansList.find((s: any) => s.raw_id === scanId);
       if (scanInfo && updateUrl) {
         setTargetUrl(scanInfo.url);
       }
 
+      if (scanInfo && scanInfo.status === 'running') {
+        addLog(`[INFO] Đang tiếp tục theo dõi quá trình quét SCN-${String(scanId).padStart(3, '0')}...`);
+        pollScanStatus(scanId);
+        return;
+      }
+
+      addLog(`[INFO] Đang nạp dữ liệu từ lịch sử quét SCN-${String(scanId).padStart(3, '0')}...`);
+
       const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
       const vulnsData = vulnsRes.data;
 
       processFindings(vulnsData);
-      
+
       setCurrentViewScanId(scanId);
       localStorage.setItem('lastViewedScanId', scanId.toString());
       setScanProgress(100);
-      
+      setIsScanning(false);
+
     } catch (err: any) {
       setScanError(`Lỗi nạp dữ liệu: ${err.message}`);
       addLog(`[ERROR] Nạp dữ liệu thất bại: ${err.message}`);
-    } finally {
       setIsScanning(false);
     }
   };
@@ -143,7 +205,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
     } else {
       setExpandedVulnId(null);
     }
-    
+
     return { mappedFindings, crit, high, med, low };
   };
 
@@ -164,14 +226,6 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
     setActiveFindings([]);
     setExpandedVulnId(null);
 
-    // Mock progress interval during backend scan
-    const scanInterval = setInterval(() => {
-      setScanProgress((prev) => {
-        const nextProgress = prev + Math.floor(Math.random() * 5) + 2;
-        return nextProgress >= 90 ? 90 : nextProgress; // Hold at 90 until done
-      });
-    }, 500);
-
     try {
       addLog(`[INFO] Khởi tạo quá trình quét mục tiêu: ${targetUrl}`);
 
@@ -185,43 +239,17 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       });
       const scanId = scanRes.data.scan_id;
 
-      addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
-
-      // 2. Lấy danh sách Vulnerabilities
-      const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
-      const vulnsData = vulnsRes.data;
-
-      clearInterval(scanInterval);
-      setScanProgress(100);
-
-      // Map API data to Frontend Vulnerability type
-      const { mappedFindings, crit, high, med, low } = processFindings(vulnsData);
-      
+      addLog(`[INFO] Quá trình quét đang chạy ngầm. Scan ID: ${scanId}. Đang chờ kết quả...`);
       setCurrentViewScanId(scanId);
       localStorage.setItem('lastViewedScanId', scanId.toString());
 
-      // Refresh past scans list silently
-      api.get('/scans').then(res => setPastScans(res.data)).catch(console.error);
-
-      // 3. Update History
-      const historyItem: ScanHistoryItem = {
-        id: `SCN-${String(scanId).padStart(3, '0')}`,
-        target: targetUrl,
-        time: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        errors_found: mappedFindings.length,
-        status: scanRes.data.status === 'Completed' ? 'Completed' : 'Completed', // Map to local status
-        severities: { critical: crit, high: high, medium: med, low: low },
-        vulnerabilities: mappedFindings.map(v => v.id)
-      };
-      onAddHistoryItem(historyItem);
+      pollScanStatus(scanId);
 
     } catch (err: any) {
-      clearInterval(scanInterval);
       const errorMsg = err.response?.data?.detail || err.message;
       setScanError(`Scan failed: ${errorMsg}`);
       addLog(`[CRITICAL] Error: ${errorMsg}`);
       setScanProgress(0);
-    } finally {
       setIsScanning(false);
     }
   };
@@ -288,8 +316,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
     const relevantScans = pastScans
       .filter(s => s.url === filterUrl)
       .slice(0, 7)
-      .reverse(); 
-      
+      .reverse();
+
     const maxVulns = Math.max(...relevantScans.map(s => s.vulns), 1);
     return { relevantScans, maxVulns };
   };
@@ -333,11 +361,11 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 <p className="text-xs text-cyber-text-muted">Phân tích sâu mã nguồn và cấu hình máy chủ để tìm ra lỗ hổng bảo mật.</p>
               </div>
             </div>
-            
+
             {/* History Dropdown */}
             {pastScans.length > 0 && (
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono text-cyber-text-muted">Lịch sử URL này:</span>
+                <span className="text-xs font-mono text-cyber-text-muted">Lịch sử URL:</span>
                 <select
                   value={currentViewScanId || ''}
                   onChange={(e) => loadScanData(Number(e.target.value))}
@@ -392,8 +420,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 type="button"
                 onClick={() => setShowConsole(!showConsole)}
                 className={`px-5 py-4 rounded-xl border font-semibold text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${showConsole
-                    ? 'bg-purple-500/10 dark:bg-purple-950/20 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/15 dark:hover:bg-purple-950/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
-                    : 'bg-cyber-card-light border-cyber-border text-cyber-text-muted hover:text-cyber-text-main hover:border-cyber-blue/40'
+                  ? 'bg-purple-500/10 dark:bg-purple-950/20 border-purple-500/40 text-purple-600 dark:text-purple-400 hover:bg-purple-500/15 dark:hover:bg-purple-950/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+                  : 'bg-cyber-card-light border-cyber-border text-cyber-text-muted hover:text-cyber-text-main hover:border-cyber-blue/40'
                   }`}
               >
                 <Terminal className="w-4 h-4" />
@@ -480,8 +508,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'CRITICAL' ? null : 'CRITICAL')}
           className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'CRITICAL'
-              ? 'border-red-500/50 bg-red-500/5 dark:bg-red-950/15 cyber-glow-error translate-y-[-2px]'
-              : 'border-cyber-border hover:border-red-500/25 hover:bg-red-500/5 dark:hover:bg-red-950/5'
+            ? 'border-red-500/50 bg-red-500/5 dark:bg-red-950/15 cyber-glow-error translate-y-[-2px]'
+            : 'border-cyber-border hover:border-red-500/25 hover:bg-red-500/5 dark:hover:bg-red-950/5'
             }`}
         >
           <div className="flex items-center justify-between mb-4">
@@ -502,8 +530,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'HIGH' ? null : 'HIGH')}
           className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'HIGH'
-              ? 'border-orange-500/50 bg-orange-500/5 dark:bg-orange-950/15 cyber-glow-warn translate-y-[-2px]'
-              : 'border-cyber-border hover:border-orange-500/25 hover:bg-orange-500/5 dark:hover:bg-orange-950/5'
+            ? 'border-orange-500/50 bg-orange-500/5 dark:bg-orange-950/15 cyber-glow-warn translate-y-[-2px]'
+            : 'border-cyber-border hover:border-orange-500/25 hover:bg-orange-500/5 dark:hover:bg-orange-950/5'
             }`}
         >
           <div className="flex items-center justify-between mb-4">
@@ -521,8 +549,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'MEDIUM' ? null : 'MEDIUM')}
           className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'MEDIUM'
-              ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-950/15 cyber-glow-warn translate-y-[-2px]'
-              : 'border-cyber-border hover:border-yellow-500/25 hover:bg-yellow-500/5 dark:hover:bg-yellow-950/5'
+            ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-950/15 cyber-glow-warn translate-y-[-2px]'
+            : 'border-cyber-border hover:border-yellow-500/25 hover:bg-yellow-500/5 dark:hover:bg-yellow-950/5'
             }`}
         >
           <div className="flex items-center justify-between mb-4">
@@ -540,8 +568,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
         <button
           onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === 'LOW' ? null : 'LOW')}
           className={`glass-panel rounded-2xl p-6 text-left transition-all duration-300 group cursor-pointer relative shadow-md hover:scale-[1.03] active:scale-[0.98] ${selectedSeverityFilter === 'LOW'
-              ? 'border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-950/15 cyber-glow-success translate-y-[-2px]'
-              : 'border-cyber-border hover:border-emerald-500/10 hover:bg-emerald-500/5 dark:hover:bg-[#10192e]'
+            ? 'border-emerald-500/50 bg-emerald-500/5 dark:bg-emerald-950/15 cyber-glow-success translate-y-[-2px]'
+            : 'border-cyber-border hover:border-emerald-500/10 hover:bg-emerald-500/5 dark:hover:bg-[#10192e]'
             }`}
         >
           <div className="flex items-center justify-between mb-4">
@@ -584,15 +612,15 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 {chartMode === 'donut' ? 'Tỉ lệ phân bố mức độ bảo mật phát hiện.' : 'So sánh lượng lỗi qua các lần quét gần nhất.'}
               </p>
             </div>
-            
+
             <div className="flex bg-cyber-input-bg border border-cyber-border rounded-lg p-0.5 shadow-sm">
-              <button 
+              <button
                 onClick={() => setChartMode('donut')}
                 className={`px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md transition-colors ${chartMode === 'donut' ? 'bg-cyber-blue text-white shadow-sm' : 'text-cyber-text-muted hover:text-cyber-text-main hover:bg-cyber-card-light'}`}
               >
                 Tỷ lệ
               </button>
-              <button 
+              <button
                 onClick={() => setChartMode('trend')}
                 className={`px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md transition-colors ${chartMode === 'trend' ? 'bg-cyber-blue text-white shadow-sm' : 'text-cyber-text-muted hover:text-cyber-text-main hover:bg-cyber-card-light'}`}
               >
@@ -607,7 +635,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 drop-shadow-2xl">
                   {/* Decorative outer ring */}
                   <circle cx="50" cy="50" r="44" fill="transparent" strokeWidth="0.5" className="stroke-cyber-blue/30" strokeDasharray="1 3" />
-                  
+
                   <circle
                     cx="50"
                     cy="50"
@@ -648,9 +676,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                     <div key={idx} className="flex flex-col items-center gap-2 group w-full relative h-full justify-end z-10">
                       {/* Background Bar Track */}
                       <div className="absolute bottom-0 w-full max-w-[32px] h-[calc(100%-1.5rem)] bg-slate-200/50 dark:bg-slate-800/30 rounded-t-md -z-10" />
-                      
+
                       {/* Actual Data Bar */}
-                      <div 
+                      <div
                         className={`w-full max-w-[32px] rounded-t-md transition-all duration-500 cursor-pointer relative shadow-sm hover:shadow-lg hover:-translate-y-1 ${isCurrent ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'bg-gradient-to-t from-slate-400/50 to-slate-300/80 hover:from-blue-400/80 hover:to-cyan-300/80 dark:from-slate-700 dark:to-slate-600'}`}
                         style={{ height: `${Math.max(heightPercent, 5)}%`, minHeight: '6px' }}
                         title={`Lần quét: ${s.id}\nLỗi: ${s.vulns}`}
@@ -658,7 +686,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                       >
                         {/* Glow effect on top of bar for active */}
                         {isCurrent && <div className="absolute top-0 inset-x-0 h-1 bg-white/50 rounded-t-md" />}
-                        
+
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-mono font-bold text-white bg-slate-800 dark:bg-black border border-slate-700 px-2 py-1 rounded shadow-xl z-20 whitespace-nowrap pointer-events-none">
                           {s.vulns} lỗi
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-black border-r border-b border-slate-700 rotate-45" />
@@ -683,8 +711,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
           {chartMode === 'donut' && !donut.empty && donut.slices && (
             <div className="space-y-1.5 pt-4 border-t border-cyber-border/50 animate-fadeIn">
               {donut.slices.map((slice, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`flex items-center justify-between text-xs cursor-pointer p-2 rounded-lg transition-all border border-transparent hover:border-cyber-border hover:bg-cyber-card-light/50 ${slice.isSelected ? 'bg-cyber-card-light border-cyber-border shadow-sm' : ''}`}
                   onClick={() => setSelectedSeverityFilter(selectedSeverityFilter === slice.name ? null : slice.name)}
                 >
@@ -755,8 +783,8 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                   <div
                     key={finding.id}
                     className={`border rounded-xl transition-all duration-350 overflow-hidden ${isExpanded
-                        ? 'border-cyber-blue bg-cyber-blue/5 shadow-[0_4px_20px_rgba(59,130,246,0.05)] backdrop-blur-sm'
-                        : 'border-cyber-border hover:border-cyber-blue/30 dark:hover:border-slate-700 bg-transparent hover:scale-[1.005]'
+                      ? 'border-cyber-blue bg-cyber-blue/5 shadow-[0_4px_20px_rgba(59,130,246,0.05)] backdrop-blur-sm'
+                      : 'border-cyber-border hover:border-cyber-blue/30 dark:hover:border-slate-700 bg-transparent hover:scale-[1.005]'
                       }`}
                   >
                     {/* Accordion Row Header */}
