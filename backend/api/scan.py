@@ -137,6 +137,7 @@ def get_vulnerabilities(scan_id: int, db: Session = Depends(get_db), current_use
         result.append({
             "id": v.id,
             "type": v.vuln_type,
+            "url": v.url,
             "severity": v.severity,
             "param": v.parameter_name,
             "payload": v.payload,

@@ -27,6 +27,14 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    otp: str
+    new_password: str
+
 class UpdateProfileRequest(BaseModel):
     username: Optional[str] = None
     logo: Optional[str] = None
@@ -109,6 +117,46 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         "username": user.username,
         "logo": user.logo
     }
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        # Don't reveal if email exists or not for security, just return success
+        return {"message": "Nếu email tồn tại, hệ thống đã gửi mã OTP xác thực."}
+
+    # Generate new OTP
+    otp_code = ''.join(random.choices(string.digits, k=6))
+    expire_time = get_vn_time() + timedelta(minutes=10)
+    
+    otp_record = OTPVerification(email=request.email, otp=otp_code, expires_at=expire_time)
+    db.add(otp_record)
+    db.commit()
+    
+    send_otp_email(request.email, otp_code)
+    
+    return {"message": "Nếu email tồn tại, hệ thống đã gửi mã OTP xác thực."}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    otp_record = db.query(OTPVerification).filter(
+        OTPVerification.email == request.email
+    ).order_by(OTPVerification.created_at.desc()).first()
+    
+    if not otp_record or otp_record.otp != request.otp:
+        raise HTTPException(status_code=400, detail="Mã OTP không hợp lệ")
+        
+    if otp_record.expires_at < get_vn_time():
+        raise HTTPException(status_code=400, detail="Mã OTP đã hết hạn")
+        
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Người dùng không tồn tại")
+        
+    user.hashed_password = get_password_hash(request.new_password)
+    db.commit()
+    
+    return {"message": "Khôi phục mật khẩu thành công! Vui lòng đăng nhập lại."}
 
 @router.put("/update-profile")
 def update_profile(

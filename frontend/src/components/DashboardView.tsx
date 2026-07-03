@@ -91,6 +91,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       const mappedFindings: Vulnerability[] = vulnsData.map((v: any) => ({
         id: `vuln-${v.id}`,
         type: v.type,
+        url: v.url || 'N/A',
         level: v.severity.toUpperCase(),
         confidence: `${Math.round(v.confidence * 100)}%`,
         description: v.description || 'Hệ thống AI phát hiện bất thường dựa trên heuristics.',
@@ -578,13 +579,18 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-cyber-text-muted font-mono">
-                          <span className="truncate">
-                            Tham số: <span className="bg-cyber-input-bg border border-cyber-border/40 px-1.5 py-0.5 rounded text-yellow-600 dark:text-yellow-400 font-bold">{finding.parameter || 'N/A'}</span>
+                        <div className="flex flex-col gap-y-1.5 text-xs text-cyber-text-muted font-mono mb-2">
+                          <span className="break-all" title={finding.url}>
+                            URL: <span className="text-cyan-600 dark:text-cyan-400 font-bold">{finding.url}</span>
                           </span>
-                          <span className="truncate max-w-sm">
-                            Payload: <span className="text-rose-600 dark:text-rose-455 font-bold">{finding.payload}</span>
-                          </span>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <span className="truncate">
+                              Tham số: <span className="bg-cyber-input-bg border border-cyber-border/40 px-1.5 py-0.5 rounded text-yellow-600 dark:text-yellow-400 font-bold">{finding.parameter || 'N/A'}</span>
+                            </span>
+                            <span className="truncate max-w-sm">
+                              Payload: <span className="text-rose-600 dark:text-rose-455 font-bold">{finding.payload}</span>
+                            </span>
+                          </div>
                         </div>
                       </div>
 

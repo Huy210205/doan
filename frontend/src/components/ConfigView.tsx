@@ -34,6 +34,13 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
     setIsSaving(true);
     setSuccessToast(false);
 
+    // Auto-format the auth header if the user just pasted a raw cookie (e.g. JSESSIONID=123)
+    let formattedAuthHeader = authHeader.trim();
+    if (formattedAuthHeader && !formattedAuthHeader.includes(':') && formattedAuthHeader.includes('=')) {
+      formattedAuthHeader = `Cookie: ${formattedAuthHeader}`;
+      setAuthHeader(formattedAuthHeader); // Update UI
+    }
+
     // Simulate saving credentials
     setTimeout(() => {
       onSaveConfig({
@@ -44,7 +51,7 @@ export default function ConfigView({ initialConfig, onSaveConfig }: ConfigViewPr
         selected_model_id: selectedModelId,
         retrain_on_new_data: retrainOnNewData,
         pdf_report_email: email,
-        auth_header: authHeader
+        auth_header: formattedAuthHeader
       });
       setIsSaving(false);
       setSuccessToast(true);

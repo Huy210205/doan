@@ -212,6 +212,16 @@ export default function Sidebar({ activeTab, onTabChange, session, onSessionUpda
                   className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">Email</label>
+                <input
+                  type="text"
+                  value={session.email}
+                  disabled
+                  className="w-full bg-cyber-input-bg/50 border border-cyber-border/50 text-cyber-text-muted text-sm rounded-xl px-4 py-3.5 focus:outline-none transition-all font-mono cursor-not-allowed"
+                />
+              </div>
               
               <button
                 type="submit"

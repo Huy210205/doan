@@ -9,7 +9,7 @@ interface LoginScreenProps {
   onLoginSuccess: (sessionData: Omit<UserSession, 'isAuthenticated'>) => void;
 }
 
-type AuthMode = 'login' | 'register' | 'otp';
+type AuthMode = 'login' | 'register' | 'otp' | 'forgot-password' | 'reset-password';
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const { auth } = contentData;
@@ -18,6 +18,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [otp, setOtp] = useState('');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,27 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         const res = await api.post('/auth/register', { email, password, username });
         setSuccessMsg(res.data?.message || 'Đăng ký thành công! Vui lòng kiểm tra email và nhập mã OTP.');
         setMode('otp');
+      } else if (mode === 'forgot-password') {
+        const res = await api.post('/auth/forgot-password', { email });
+        setSuccessMsg(res.data?.message || 'Đã gửi mã OTP khôi phục mật khẩu vào email của bạn.');
+        setMode('reset-password');
+      } else if (mode === 'reset-password') {
+        if (!otp) {
+          setErrorMsg('Vui lòng nhập mã OTP.');
+          setIsLoading(false);
+          return;
+        }
+        if (!newPassword || newPassword.length < 6) {
+          setErrorMsg('Mật khẩu mới tối thiểu 6 ký tự.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await api.post('/auth/reset-password', { email, otp, new_password: newPassword });
+        setSuccessMsg(res.data?.message || 'Khôi phục mật khẩu thành công! Vui lòng đăng nhập lại.');
+        setMode('login');
+        setOtp('');
+        setNewPassword('');
+        setPassword('');
       } else if (mode === 'otp') {
         if (!otp) {
           setErrorMsg('Vui lòng nhập mã OTP.');
@@ -87,18 +109,24 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const getTitle = () => {
     if (mode === 'register') return auth.register_title;
     if (mode === 'otp') return 'XÁC THỰC EMAIL';
+    if (mode === 'forgot-password') return 'QUÊN MẬT KHẨU';
+    if (mode === 'reset-password') return 'ĐẶT LẠI MẬT KHẨU';
     return auth.login_title;
   };
 
   const getSubtitle = () => {
     if (mode === 'register') return auth.register_subtitle;
     if (mode === 'otp') return 'NHẬP MÃ BẢO MẬT TỪ HỘP THƯ';
+    if (mode === 'forgot-password') return 'NHẬP EMAIL ĐỂ KHÔI PHỤC TÀI KHOẢN';
+    if (mode === 'reset-password') return 'NHẬP MÃ OTP VÀ MẬT KHẨU MỚI';
     return auth.login_subtitle;
   };
 
   const getButtonText = () => {
     if (mode === 'register') return auth.register_button;
     if (mode === 'otp') return 'XÁC THỰC OTP';
+    if (mode === 'forgot-password') return 'GỬI MÃ KHÔI PHỤC';
+    if (mode === 'reset-password') return 'ĐẶT LẠI MẬT KHẨU';
     return auth.login_button;
   };
 
@@ -156,7 +184,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 id="email-input"
                 type="email"
                 required
-                disabled={mode === 'otp'}
+                disabled={mode === 'otp' || mode === 'reset-password'}
                 className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono disabled:opacity-50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -165,11 +193,26 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           </div>
 
           {/* Password input (Login / Register) */}
-          {mode !== 'otp' && (
+          {(mode === 'login' || mode === 'register') && (
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">
-                Mật khẩu hệ thống
-              </label>
+              <div className="flex justify-between items-end">
+                <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">
+                  Mật khẩu hệ thống
+                </label>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('forgot-password');
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                    }}
+                    className="text-[10px] font-mono text-cyber-blue hover:text-blue-600 dark:text-cyan-400 dark:hover:text-cyan-300 uppercase tracking-wider hover:underline"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 dark:text-slate-500">
                   <Lock className="w-4 h-4" />
@@ -208,7 +251,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           )}
 
           {/* OTP input */}
-          {mode === 'otp' && (
+          {(mode === 'otp' || mode === 'reset-password') && (
             <div className="space-y-1.5 animate-fadeIn">
               <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">
                 Mã OTP (6 chữ số)
@@ -225,6 +268,28 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono tracking-widest text-center"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* New Password input */}
+          {mode === 'reset-password' && (
+            <div className="space-y-1.5 animate-fadeIn">
+              <label className="text-xs font-semibold text-cyber-text-muted font-mono uppercase tracking-wider block">
+                Mật khẩu mới
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400 dark:text-slate-500">
+                  <Lock className="w-4 h-4" />
+                </span>
+                <input
+                  id="new-password-input"
+                  type="password"
+                  required
+                  className="w-full bg-cyber-input-bg border border-cyber-border text-cyber-text-main text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-cyber-blue focus:ring-1 focus:ring-cyber-blue/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
             </div>
@@ -253,7 +318,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
         {/* Footer Toggle */}
         <div className="mt-8 text-center border-t border-cyber-border/50 pt-5">
-          {mode === 'otp' ? (
+          {(mode === 'otp' || mode === 'forgot-password' || mode === 'reset-password') ? (
             <button
               onClick={() => {
                 setMode('login');
