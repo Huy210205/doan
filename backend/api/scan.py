@@ -133,6 +133,7 @@ def get_vulnerabilities(scan_id: int, db: Session = Depends(get_db), current_use
     for v in vulns:
         kb = db.query(RemediationKB).filter(RemediationKB.vuln_type == v.vuln_type).first()
         recommendation = kb.recommendation if kb else "Cần rà soát lại mã nguồn. Validate đầu vào."
+        description = kb.description if kb else "Hệ thống AI phát hiện bất thường dựa trên heuristics."
         code_snippet = kb.code_snippet if kb else ""
         result.append({
             "id": v.id,
@@ -143,6 +144,7 @@ def get_vulnerabilities(scan_id: int, db: Session = Depends(get_db), current_use
             "payload": v.payload,
             "confidence": v.confidence,
             "evidence": v.evidence,
+            "description": description,
             "recommendation": recommendation,
             "code_snippet": code_snippet
         })
