@@ -35,8 +35,11 @@ class Crawler:
         self.visited.add(url)
         print(f"Crawling: {url} (Depth: {depth})")
 
-        # Skip static files
+        # Skip static files and LOGOUT links (to prevent killing the session)
         if any(url.lower().endswith(ext) for ext in ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.pdf', '.zip']):
+            return
+        if 'logout' in url.lower() or 'signout' in url.lower() or 'logoff' in url.lower():
+            print(f"Skipping logout URL to preserve session: {url}")
             return
 
         try:

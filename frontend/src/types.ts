@@ -1,6 +1,7 @@
 export interface Vulnerability {
   id: string;
   type: string;
+  url: string;
   level: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
   confidence: string;
   parameter: string;

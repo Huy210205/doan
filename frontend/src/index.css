@@ -27,7 +27,7 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
+
   --color-cyber-bg: var(--cyber-bg);
   --color-cyber-card: var(--cyber-card);
   --color-cyber-card-light: var(--cyber-card-light);
@@ -61,12 +61,15 @@
 .user-block-bg {
   background-color: rgba(59, 130, 246, 0.1);
 }
+
 .user-block-bg:hover {
   background-color: rgba(59, 130, 246, 0.15);
 }
+
 .dark .user-block-bg {
   background-color: rgba(59, 130, 246, 0.05);
 }
+
 .dark .user-block-bg:hover {
   background-color: rgba(59, 130, 246, 0.1);
 }
@@ -93,6 +96,7 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -125,10 +129,10 @@
 
 /* Fix browser autofill background in dark mode */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
-input:-webkit-autofill:active{
-    -webkit-box-shadow: 0 0 0 30px var(--cyber-input-bg) inset !important;
-    -webkit-text-fill-color: var(--cyber-text-main) !important;
-    transition: background-color 5000s ease-in-out 0s;
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--cyber-input-bg) inset !important;
+  -webkit-text-fill-color: var(--cyber-text-main) !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

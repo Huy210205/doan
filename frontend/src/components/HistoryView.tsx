@@ -15,7 +15,7 @@ interface HistoryViewProps {
 export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryViewProps) {
   const { vulnerability_severities } = contentData;
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [apiHistoryList, setApiHistoryList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,6 +51,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
       const mappedFindings: Vulnerability[] = res.data.map((v: any) => ({
         id: `vuln-${v.id}`,
         type: v.type,
+        url: v.url || 'N/A',
         level: v.severity.toUpperCase(),
         confidence: `${Math.round((v.confidence || 0.9) * 100)}%`,
         description: v.description || 'Chi tiết lỗi do AI dự đoán.',
@@ -117,7 +118,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
   };
 
   // Filter list by target url
-  const filteredHistory = apiHistoryList.filter(item => 
+  const filteredHistory = apiHistoryList.filter(item =>
     item.url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -195,7 +196,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                     <td className="py-4.5 px-6 font-mono text-cyber-text-main select-all max-w-xs truncate">
                       <div className="flex items-center gap-2 group">
                         <span className="truncate">{item.url}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-cyber-text-muted opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" />
+                        <ExternalLink className="w-3.5 h-3.5 text-cyber-text-muted opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shrink-0" />
                       </div>
                     </td>
                     <td className="py-4.5 px-6 text-center font-mono text-cyber-text-muted text-xs">
@@ -232,7 +233,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           <Eye className="w-3.5 h-3.5" />
                           <span>Xem</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handlePdf(item)}
                           disabled={downloadingPdfId === item.id || item.status === 'running'}
@@ -241,7 +242,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           {downloadingPdfId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                           <span>PDF</span>
                         </button>
-                        
+
                         <button
                           onClick={() => handleHtml(item)}
                           disabled={downloadingPdfId === item.id + '_html' || item.status === 'running'}
@@ -264,13 +265,13 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
       {selectedAuditForView && (
         <div id="view-details-overlay" className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="w-full max-w-2xl glass-panel h-full shadow-2xl flex flex-col justify-between animate-slideLeft z-50">
-            
+
             <div className="p-6 border-b border-cyber-border flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-600 dark:text-cyan-400 font-bold">
                   CHI TIẾT RÀ QUÉT :: {selectedAuditForView.id}
                 </span>
-                <h2 className="text-lg font-bold text-cyber-text-main truncate max-w-md">
+                <h2 className="text-lg font-bold text-cyber-text-main break-all">
                   {selectedAuditForView.url}
                 </h2>
               </div>
@@ -296,7 +297,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
 
               <div className="space-y-4">
                 <h3 className="text-xs font-bold uppercase font-mono tracking-wider text-cyber-text-muted">Danh sách hiểm họa an ninh</h3>
-                
+
                 {isLoadingVulns ? (
                   <div className="text-center p-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-cyan-500" /></div>
                 ) : vulnsData.length === 0 ? (
@@ -330,8 +331,17 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           </span>
                         </div>
                         <div className="text-xs font-mono text-cyber-text-main space-y-1 bg-cyber-input-bg p-2.5 rounded-lg border border-cyber-border/40">
-                          <p>Tham số: <span className="text-yellow-600 dark:text-yellow-500 font-semibold">{vuln.parameter}</span></p>
-                          <p>Mã kiểm thử: <span className="text-rose-600 dark:text-rose-400 font-semibold">{vuln.payload}</span></p>
+                          <p className="break-all" title={vuln.url}>URL: <span className="text-cyan-600 dark:text-cyan-400 font-semibold">{vuln.url}</span></p>
+                          <p className="truncate">Tham số: <span className="text-yellow-600 dark:text-yellow-500 font-semibold">{vuln.parameter}</span></p>
+                          <p className="truncate">Mã kiểm thử: <span className="text-rose-600 dark:text-rose-400 font-semibold">{vuln.payload}</span></p>
+                        </div>
+                        <div className="space-y-1 p-3 bg-red-500/5 dark:bg-red-950/10 border border-red-500/20 rounded-xl shadow-inner mt-2">
+                          <h4 className="text-[10px] font-bold uppercase font-mono tracking-wider text-red-500 flex items-center gap-1.5">
+                            Bằng chứng rà quét (Scanner proof)
+                          </h4>
+                          <p className="text-[10px] font-mono text-cyber-text-main break-all leading-relaxed whitespace-pre-wrap">
+                            {vuln.evidence || 'Phát hiện lỗ hổng dựa trên kết quả HTTP Response.'}
+                          </p>
                         </div>
                         <div className="text-xs text-cyber-text-muted leading-relaxed pt-1.5">
                           <span className="font-bold text-cyber-text-main block mb-1">Khuyến nghị điều chỉnh:</span>
