@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, Loader2, ArrowRight, Key, User } from 'lucide-react';
+import { Shield, Mail, Lock, Loader2, ArrowRight, Key, User, ArrowLeft } from 'lucide-react';
 import contentData from '../data/contentData.json';
 import api from '../api';
 
@@ -7,11 +7,12 @@ import { UserSession } from '../types';
 
 interface LoginScreenProps {
   onLoginSuccess: (sessionData: Omit<UserSession, 'isAuthenticated'>) => void;
+  onBack?: () => void;
 }
 
 type AuthMode = 'login' | 'register' | 'otp' | 'forgot-password' | 'reset-password';
 
-export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+export default function LoginScreen({ onLoginSuccess, onBack }: LoginScreenProps) {
   const { auth } = contentData;
   const [mode, setMode] = useState<AuthMode>('login');
   
@@ -144,6 +145,18 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         
         {/* Animated Accent Line */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-cyber-blue to-transparent rounded-t-2xl" />
+
+        {/* Back Button */}
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="absolute top-6 left-6 p-2 text-cyber-text-muted hover:text-cyber-text-main transition-colors rounded-lg hover:bg-cyber-blue/10"
+            title="Quay lại Trang chủ"
+            type="button"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Brand Shield Icon */}
         <div className="flex flex-col items-center mb-8">

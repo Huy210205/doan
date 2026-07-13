@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Eye, Trash2, Calendar, Shield, ExternalLink, Printer, Check, Loader2 } from 'lucide-react';
+import { Search, Download, Eye, Trash2, Calendar, Shield, ExternalLink, Printer, Check, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { ScanHistoryItem, Vulnerability } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
@@ -25,6 +25,10 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
   const [isLoadingVulns, setIsLoadingVulns] = useState(false);
   // States for PDF downloading
   const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null);
+
+  // States for Delete Modal and Toast
+  const [itemToDelete, setItemToDelete] = useState<{ raw_id: number, id: string } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (activeTab === 'history' || activeTab === undefined) {
@@ -114,6 +118,26 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
       alert('Lỗi tải báo cáo HTML!');
     } finally {
       setDownloadingPdfId(null);
+    }
+  };
+
+  const handleDeleteClick = (rawId: number, id: string) => {
+    setItemToDelete({ raw_id: rawId, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await api.delete(`/scans/${itemToDelete.raw_id}`);
+      onDeleteHistoryItem(itemToDelete.id);
+      setApiHistoryList(prev => prev.filter(item => item.id !== itemToDelete.id));
+      setToastMessage({ text: `Đã xóa lịch sử ${itemToDelete.id} thành công!`, type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete scan', err);
+      setToastMessage({ text: 'Lỗi xóa lịch sử quét!', type: 'error' });
+    } finally {
+      setItemToDelete(null);
+      setTimeout(() => setToastMessage(null), 3500);
     }
   };
 
@@ -251,6 +275,13 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           {downloadingPdfId === item.id + '_html' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
                           <span>HTML</span>
                         </button>
+
+                        <button
+                          onClick={() => handleDeleteClick(item.raw_id, item.id)}
+                          className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-650 dark:text-red-400 hover:bg-red-500/20 hover:text-white transition-all duration-200 text-xs font-semibold flex items-center cursor-pointer hover:scale-105 active:scale-95"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -364,6 +395,55 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-sm glass-panel shadow-2xl rounded-2xl p-6 border border-red-500/30 animate-scaleIn">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-1">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-cyber-text-main">Xác nhận xóa</h3>
+                <p className="text-sm text-cyber-text-muted mt-2">
+                  Bạn có chắc chắn muốn xóa bản ghi <span className="font-mono font-bold text-red-400">{itemToDelete.id}</span> này không? Dữ liệu này sẽ không thể khôi phục.
+                </p>
+              </div>
+              <div className="flex gap-3 w-full mt-2">
+                <button
+                  onClick={() => setItemToDelete(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-cyber-border text-cyber-text-main hover:bg-cyber-card-light transition-all cursor-pointer font-semibold text-sm"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all cursor-pointer font-bold text-sm shadow-lg shadow-red-500/20"
+                >
+                  Xóa vĩnh viễn
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-6 right-6 z-[70] p-4 rounded-xl border flex items-center gap-3 animate-slideUp shadow-2xl ${
+          toastMessage.type === 'success' 
+            ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-400 cyber-glow-success' 
+            : 'bg-red-950/90 border-red-500/50 text-red-400 cyber-glow-error'
+        }`}>
+          {toastMessage.type === 'success' ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <AlertTriangle className="w-5 h-5" />
+          )}
+          <span className="text-sm font-semibold pr-2">{toastMessage.text}</span>
         </div>
       )}
     </div>

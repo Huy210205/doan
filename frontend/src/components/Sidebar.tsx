@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Shield, LayoutDashboard, History, Settings, LogOut, User, Sun, Moon, Camera, X, Loader2 } from 'lucide-react';
+import { LayoutDashboard, History, Settings, LogOut, User, Sun, Moon, Camera, X, Loader2 } from 'lucide-react';
 import { ActiveTab, UserSession } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
+import Logo from './Logo';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -73,9 +74,7 @@ export default function Sidebar({ activeTab, onTabChange, session, onSessionUpda
       <div className="flex flex-col">
         {/* Sidebar Header Brand Logo */}
         <div className="p-6 border-b border-cyber-border/80 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyber-blue/10 border border-cyber-blue/30 flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-            <Shield className="w-6 h-6 text-cyber-blue" />
-          </div>
+        <Logo />
           <div>
             <h2 className="text-lg font-bold font-display tracking-tight text-cyber-text-main leading-none">
               {app.title}
