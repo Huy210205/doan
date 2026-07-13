@@ -134,7 +134,7 @@ export default function App() {
     if (showLogin) {
       return <LoginScreen onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
     }
-    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+    return <LandingPage onLoginClick={() => setShowLogin(true)} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   return (
