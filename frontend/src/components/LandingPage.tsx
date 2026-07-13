@@ -1,12 +1,14 @@
 import React from 'react';
-import { Shield, Zap, Search, Lock, Server, ArrowRight } from 'lucide-react';
+import { Shield, Zap, Search, Lock, Server, ArrowRight, Sun, Moon } from 'lucide-react';
 import Logo from './Logo';
 
 interface LandingPageProps {
   onLoginClick: () => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }
 
-export default function LandingPage({ onLoginClick }: LandingPageProps) {
+export default function LandingPage({ onLoginClick, theme, onToggleTheme }: LandingPageProps) {
   return (
     <div className="min-h-screen flex flex-col bg-cyber-bg text-cyber-text-main selection:bg-cyber-blue/30 relative overflow-x-hidden transition-colors duration-200">
       {/* Background Container - prevents scroll overflow */}
@@ -38,17 +40,23 @@ export default function LandingPage({ onLoginClick }: LandingPageProps) {
           <a href="#about" className="hover:text-cyber-text-main transition-colors">Giới thiệu</a>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onToggleTheme}
+            className="p-2 rounded-full hover:bg-cyber-card transition-colors text-cyber-text-muted hover:text-cyber-text-main flex-shrink-0"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+
           <button 
             onClick={onLoginClick}
-            className="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-cyber-bg/50 border border-cyber-border hover:border-cyber-blue/50 text-cyber-text-main font-semibold overflow-hidden transition-all duration-300 active:scale-95 shadow-sm hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+            className="group relative inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm tracking-wide overflow-hidden transition-all duration-300 active:scale-95 bg-cyber-card-light/50 border border-cyber-border text-cyber-text-main shadow-sm hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:border-cyber-blue/50"
           >
-            {/* Shine effect on hover */}
-            <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-150%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(150%)] pointer-events-none">
-              <div className="relative h-full w-8 bg-black/5 dark:bg-white/10" />
-            </div>
-            
-            <span className="relative z-10">Đăng nhập</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <span className="relative z-10 flex items-center gap-2 group-hover:text-white transition-colors duration-300">
+              Đăng nhập <ArrowRight className="w-4 h-4 opacity-0 -ml-6 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
+            </span>
           </button>
         </div>
       </nav>
@@ -103,8 +111,7 @@ export default function LandingPage({ onLoginClick }: LandingPageProps) {
               </div>
               {/* Mockup Body */}
               <div className="p-6 flex-1 flex flex-col gap-4 relative overflow-hidden bg-cyber-bg/20">
-                {/* Scanning overlay */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-cyber-blue shadow-[0_0_20px_#3b82f6] z-20 animate-scan" />
+
                 
                 <div className="flex items-center justify-between mb-2">
                   <div className="h-6 w-32 bg-cyber-border/50 rounded-md" />
