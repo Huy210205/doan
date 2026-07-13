@@ -4,6 +4,7 @@ import LoginScreen from './components/LoginScreen';
 import DashboardView from './components/DashboardView';
 import HistoryView from './components/HistoryView';
 import ConfigView from './components/ConfigView';
+import LandingPage from './components/LandingPage';
 import { ScanHistoryItem, SystemConfig, ActiveTab, UserSession } from './types';
 import contentData from './data/contentData.json';
 
@@ -12,6 +13,8 @@ export default function App() {
     email: '',
     isAuthenticated: false
   });
+
+  const [showLogin, setShowLogin] = useState(false);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   
@@ -128,7 +131,10 @@ export default function App() {
 
   // Guard routing
   if (!session.isAuthenticated) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    if (showLogin) {
+      return <LoginScreen onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
+    }
+    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
   return (

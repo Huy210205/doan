@@ -3,6 +3,7 @@ import { Search, Play, Terminal, AlertOctagon, AlertTriangle, AlertCircle, Shiel
 import { Vulnerability, ScanHistoryItem, SystemConfig } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
+import AIEngineLive from './AIEngineLive';
 
 interface DashboardViewProps {
   onAddHistoryItem: (newItem: ScanHistoryItem) => void;
@@ -338,12 +339,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/40 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
-            AI Engine Live
-          </span>
-        </div>
+        <AIEngineLive isScanning={isScanning} />
       </div>
 
       {/* Target URL Selector Input and Console Controls Section */}
@@ -516,7 +512,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             <span className="text-[10px] font-mono font-bold tracking-wider text-red-500/80 uppercase">
               {vulnerability_severities.CRITICAL?.label || 'CRITICAL'}
             </span>
-            <AlertOctagon className="w-5 h-5 text-red-500 group-hover:scale-110 duration-200 transition-all" />
+            <div className="w-9 h-9 rounded-xl bg-red-500/15 dark:bg-red-500/10 flex items-center justify-center group-hover:scale-110 duration-200 transition-all">
+              <AlertOctagon className="w-4.5 h-4.5 text-red-500" />
+            </div>
           </div>
           <span className="text-4xl font-extrabold text-cyber-text-main tracking-tight leading-none">
             {critCount}
@@ -538,7 +536,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             <span className="text-[10px] font-mono font-bold tracking-wider text-orange-500/80 uppercase">
               {vulnerability_severities.HIGH?.label || 'HIGH'}
             </span>
-            <AlertTriangle className="w-5 h-5 text-orange-500 group-hover:scale-110 duration-200 transition-all" />
+            <div className="w-9 h-9 rounded-xl bg-orange-500/15 dark:bg-orange-500/10 flex items-center justify-center group-hover:scale-110 duration-200 transition-all">
+              <AlertTriangle className="w-4.5 h-4.5 text-orange-500" />
+            </div>
           </div>
           <span className="text-4xl font-extrabold text-cyber-text-main tracking-tight leading-none">
             {highCount}
@@ -557,7 +557,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             <span className="text-[10px] font-mono font-bold tracking-wider text-yellow-500/80 uppercase">
               {vulnerability_severities.MEDIUM?.label || 'MEDIUM'}
             </span>
-            <AlertCircle className="w-5 h-5 text-yellow-500 group-hover:scale-110 duration-200 transition-all" />
+            <div className="w-9 h-9 rounded-xl bg-yellow-500/15 dark:bg-yellow-500/10 flex items-center justify-center group-hover:scale-110 duration-200 transition-all">
+              <AlertCircle className="w-4.5 h-4.5 text-yellow-500" />
+            </div>
           </div>
           <span className="text-4xl font-extrabold text-cyber-text-main tracking-tight leading-none">
             {medCount}
@@ -576,7 +578,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-500/80 uppercase">
               {vulnerability_severities.LOW?.label || 'LOW'}
             </span>
-            <ShieldCheck className="w-5 h-5 text-emerald-500 group-hover:scale-110 duration-200 transition-all" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 duration-200 transition-all">
+              <ShieldCheck className="w-4.5 h-4.5 text-emerald-500" />
+            </div>
           </div>
           <span className="text-4xl font-extrabold text-cyber-text-main tracking-tight leading-none">
             {lowCount}
@@ -656,6 +660,15 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                   ))}
                   {/* Center cutout to make it a donut */}
                   <circle cx="50" cy="50" r="28" className="fill-cyber-bg transition-colors duration-300 shadow-inner" />
+
+                  {/* Radar Spinner - 4 rotating spokes */}
+                  <g style={{ transformOrigin: '50px 50px', animation: 'radarSpin 4s linear infinite' }}>
+                    <line x1="50" y1="50" x2="50" y2="30" stroke="rgba(59,130,246,0.4)" strokeWidth="0.8" strokeLinecap="round" />
+                    <line x1="50" y1="50" x2="67" y2="50" stroke="rgba(59,130,246,0.2)" strokeWidth="0.5" strokeLinecap="round" />
+                    <line x1="50" y1="50" x2="50" y2="70" stroke="rgba(59,130,246,0.1)" strokeWidth="0.3" strokeLinecap="round" />
+                    <circle cx="50" cy="30" r="1.2" fill="rgba(99,220,255,0.8)" />
+                  </g>
+                  <style dangerouslySetInnerHTML={{__html: '@keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}} />
                 </svg>
                 {/* Text overlay in center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -668,41 +681,83 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 </div>
               </div>
             ) : (
-              <div className="w-full h-48 flex items-end justify-around gap-2 px-2 pb-6 border-b border-cyber-border/50 relative animate-fadeIn bg-[linear-gradient(rgba(59,130,246,0.15)_1px,transparent_1px)] bg-[size:100%_25%]">
-                {trend.relevantScans.map((s, idx) => {
-                  const heightPercent = (s.vulns / trend.maxVulns) * 100;
-                  const isCurrent = s.raw_id === currentViewScanId;
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-2 group w-full relative h-full justify-end z-10">
-                      {/* Background Bar Track */}
-                      <div className="absolute bottom-0 w-full max-w-[32px] h-[calc(100%-1.5rem)] bg-slate-200/50 dark:bg-slate-800/30 rounded-t-md -z-10" />
-
-                      {/* Actual Data Bar */}
-                      <div
-                        className={`w-full max-w-[32px] rounded-t-md transition-all duration-500 cursor-pointer relative shadow-sm hover:shadow-lg hover:-translate-y-1 ${isCurrent ? 'bg-gradient-to-t from-blue-600 via-blue-500 to-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'bg-gradient-to-t from-slate-400/50 to-slate-300/80 hover:from-blue-400/80 hover:to-cyan-300/80 dark:from-slate-700 dark:to-slate-600'}`}
-                        style={{ height: `${Math.max(heightPercent, 5)}%`, minHeight: '6px' }}
-                        title={`Lần quét: ${s.id}\nLỗi: ${s.vulns}`}
-                        onClick={() => loadScanData(s.raw_id)}
-                      >
-                        {/* Glow effect on top of bar for active */}
-                        {isCurrent && <div className="absolute top-0 inset-x-0 h-1 bg-white/50 rounded-t-md" />}
-
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-mono font-bold text-white bg-slate-800 dark:bg-black border border-slate-700 px-2 py-1 rounded shadow-xl z-20 whitespace-nowrap pointer-events-none">
-                          {s.vulns} lỗi
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 dark:bg-black border-r border-b border-slate-700 rotate-45" />
-                        </div>
-                      </div>
-                      <span className={`absolute -bottom-6 text-[9px] font-mono truncate w-full text-center ${isCurrent ? 'text-cyber-blue font-bold tracking-wider' : 'text-cyber-text-muted'}`}>
-                        {s.id.split('-')[1]}
-                      </span>
-                    </div>
-                  )
-                })}
-                {trend.relevantScans.length === 0 && (
-                  <div className="text-xs text-cyber-text-muted font-mono absolute top-1/2 -translate-y-1/2">
+              <div className="w-full h-52 relative animate-fadeIn overflow-hidden">
+                {trend.relevantScans.length === 0 ? (
+                  <div className="text-xs text-cyber-text-muted font-mono absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
                     Chưa có dữ liệu lịch sử cho URL này.
                   </div>
-                )}
+                ) : (() => {
+                  const W = 240;
+                  const H = 160;
+                  const pad = 16;
+                  const scans = trend.relevantScans;
+                  const maxV = trend.maxVulns;
+                  const pts = scans.map((s, i) => ({
+                    x: pad + (i / Math.max(scans.length - 1, 1)) * (W - pad * 2),
+                    y: H - pad - (s.vulns / maxV) * (H - pad * 2),
+                    s
+                  }));
+
+                  // Build smooth cubic bezier path
+                  const pathD = pts.reduce((acc, pt, i) => {
+                    if (i === 0) return `M ${pt.x},${pt.y}`;
+                    const prev = pts[i - 1];
+                    const cpx = (prev.x + pt.x) / 2;
+                    return acc + ` C ${cpx},${prev.y} ${cpx},${pt.y} ${pt.x},${pt.y}`;
+                  }, '');
+
+                  // Fill area under curve
+                  const areaD = pathD + ` L ${pts[pts.length-1].x},${H-pad} L ${pts[0].x},${H-pad} Z`;
+
+                  return (
+                    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+                        </linearGradient>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                          <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                      </defs>
+                      {/* Grid lines */}
+                      {[0.25, 0.5, 0.75].map(t => (
+                        <line key={t} x1={pad} y1={pad + t*(H-pad*2)} x2={W-pad} y2={pad + t*(H-pad*2)}
+                          stroke="rgba(99,130,246,0.1)" strokeWidth="0.5" strokeDasharray="3 4" />
+                      ))}
+                      {/* Fill area */}
+                      <path d={areaD} fill="url(#waveGrad)" />
+                      {/* Neon Spline */}
+                      <path d={pathD} fill="none" stroke="#38bdf8" strokeWidth="2" filter="url(#glow)" strokeLinecap="round" strokeLinejoin="round" />
+                      {/* Data points */}
+                      {pts.map((pt, i) => {
+                        const isCurrent = pt.s.raw_id === currentViewScanId;
+                        return (
+                          <g key={i} className="cursor-pointer" onClick={() => loadScanData(pt.s.raw_id)}>
+                            <circle cx={pt.x} cy={pt.y} r="5" fill="transparent" />
+                            <circle cx={pt.x} cy={pt.y} r={isCurrent ? 4 : 2.5}
+                              fill={isCurrent ? '#22d3ee' : '#0ea5e9'}
+                              stroke={isCurrent ? 'white' : '#38bdf8'}
+                              strokeWidth={isCurrent ? 1.5 : 0.8}
+                              filter={isCurrent ? 'url(#glow)' : undefined}
+                            />
+                            <text x={pt.x} y={H-2} textAnchor="middle"
+                              fontSize="7" fill={isCurrent ? '#38bdf8' : 'rgba(150,170,200,0.7)'}
+                              fontFamily="monospace" fontWeight={isCurrent ? 'bold' : 'normal'}>
+                              {pt.s.id.split('-')[1]}
+                            </text>
+                            {/* Tooltip label above point */}
+                            <text x={pt.x} y={pt.y - 6} textAnchor="middle"
+                              fontSize="6.5" fill="#94a3b8" fontFamily="monospace">
+                              {pt.s.vulns}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  );
+                })()}
               </div>
             )}
           </div>
