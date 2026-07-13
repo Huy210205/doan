@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Download, Eye, Trash2, Calendar, Shield, ExternalLink, Printer, Check, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, Download, Eye, Trash2, Calendar, Shield, ExternalLink, Printer, Check, Loader2, AlertTriangle, CheckCircle, AlertOctagon } from 'lucide-react';
 import { ScanHistoryItem, Vulnerability } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
@@ -141,6 +141,20 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
     }
   };
 
+  const handleStopScan = async (rawId: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn dừng đợt quét này không?")) return;
+    try {
+      await api.post(`/scans/${rawId}/stop`);
+      setToastMessage({ text: `Đã yêu cầu dừng đợt quét thành công!`, type: 'success' });
+      fetchHistory();
+      setTimeout(() => setToastMessage(null), 3500);
+    } catch (err: any) {
+      console.error('Failed to stop scan', err);
+      setToastMessage({ text: err.response?.data?.detail || 'Lỗi dừng đợt quét!', type: 'error' });
+      setTimeout(() => setToastMessage(null), 3500);
+    }
+  };
+
   // Filter list by target url
   const filteredHistory = apiHistoryList.filter(item =>
     item.url?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -275,6 +289,17 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           {downloadingPdfId === item.id + '_html' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
                           <span>HTML</span>
                         </button>
+
+                        {item.status === 'running' && (
+                          <button
+                            onClick={() => handleStopScan(item.raw_id)}
+                            className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 hover:text-white transition-all duration-200 text-xs font-semibold flex items-center gap-1 cursor-pointer hover:scale-105 active:scale-95"
+                            title="Dừng tiến trình quét này"
+                          >
+                            <AlertOctagon className="w-3.5 h-3.5" />
+                            <span>Dừng</span>
+                          </button>
+                        )}
 
                         <button
                           onClick={() => handleDeleteClick(item.raw_id, item.id)}

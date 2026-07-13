@@ -14,7 +14,9 @@ class User(Base):
     username = Column(String(255), nullable=True)
     logo = Column(Text, nullable=True)
     hashed_password = Column(String(255), nullable=False)
+    role = Column(String(50), default="user")
     is_verified = Column(Boolean, default=False)
+    is_blocked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=get_vn_time)
 
     scans = relationship("Scan", back_populates="user", cascade="all, delete-orphan")

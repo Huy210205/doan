@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine
 from models.schema import Base
-from api import auth, scan
+from api import auth, scan, admin
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -21,6 +21,7 @@ app.add_middleware(
 # Khai báo các module router (Clean Architecture)
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(scan.router, prefix="/api", tags=["Scanner"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 import json
 import os
