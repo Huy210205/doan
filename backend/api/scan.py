@@ -18,6 +18,8 @@ from api.deps import get_current_user
 router = APIRouter()
 classifier = AIClassifier()
 
+cancel_flags = {}
+
 class ScanRequest(BaseModel):
     url: str
     delay_ms: int = 0
@@ -26,6 +28,7 @@ class ScanRequest(BaseModel):
 
 def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, auth_header: str):
     db = SessionLocal()
+    cancel_flags[scan_id] = False
     try:
         # 1. Crawl
         print(f"Starting general scan for: {target_url} (Max Depth: {max_depth})")
@@ -49,6 +52,9 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         all_vulns = []
         
         def scan_endpoint(endpoint):
+            if cancel_flags.get(scan_id, False):
+                return []
+                
             # Thêm jitter nhỏ để tránh các luồng đập request cùng 1 mili-giây
             jitter = random.uniform(0.1, 0.5)
             if delay_ms > 0:
@@ -56,6 +62,9 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
             else:
                 time.sleep(jitter)
             
+            if cancel_flags.get(scan_id, False):
+                return []
+                
             vulns = []
             vulns.extend(sqli.scan(endpoint))
             vulns.extend(xss.scan(endpoint))
@@ -67,10 +76,20 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_to_ep = {executor.submit(scan_endpoint, ep): ep for ep in endpoints_to_scan}
             for future in concurrent.futures.as_completed(future_to_ep):
+                if cancel_flags.get(scan_id, False):
+                    break
                 try:
                     all_vulns.extend(future.result())
                 except Exception as exc:
                     print(f'Endpoint generated an exception: {exc}')
+            
+        if cancel_flags.get(scan_id, False):
+            print(f"Scan {scan_id} was stopped by user.")
+            scan_obj = db.query(Scan).filter(Scan.id == scan_id).first()
+            if scan_obj:
+                scan_obj.status = "Stopped"
+                db.commit()
+            return
             
         # 3. Save vulnerabilities
         for v in all_vulns:
@@ -117,6 +136,23 @@ def create_scan(request: ScanRequest, background_tasks: BackgroundTasks, db: Ses
     background_tasks.add_task(perform_scan, new_scan.id, request.url, request.delay_ms, request.max_depth, request.auth_header)
     
     return {"message": "Scan started", "scan_id": new_scan.id, "status": new_scan.status}
+
+@router.post("/scans/{scan_id}/stop")
+def stop_scan(scan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    scan = db.query(Scan).filter(Scan.id == scan_id).first()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+        
+    if scan.user_id != current_user.id and current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Not authorized to stop this scan")
+        
+    if scan.status != "running":
+        return {"message": f"Scan is already {scan.status}"}
+        
+    cancel_flags[scan_id] = True
+    scan.status = "Stopped"
+    db.commit()
+    return {"message": "Scan stop requested"}
 
 @router.get("/scans")
 def get_scans(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

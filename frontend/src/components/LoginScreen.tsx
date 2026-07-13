@@ -86,11 +86,13 @@ export default function LoginScreen({ onLoginSuccess, onBack }: LoginScreenProps
           return;
         }
         const res = await api.post('/auth/login', { email, password });
+        
         onLoginSuccess({
-          email: res.data.email,
-          token: res.data.access_token,
-          username: res.data.username,
-          logo: res.data.logo
+          email: res.data?.email,
+          token: res.data?.access_token,
+          username: res.data?.username,
+          logo: res.data?.logo,
+          role: res.data?.role
         });
       }
     } catch (err: any) {

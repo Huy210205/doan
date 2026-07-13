@@ -98,8 +98,12 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
           clearInterval(scanInterval);
           setScanProgress(100);
 
-          if (currentScan.status === 'Completed') {
-            addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
+          if (currentScan.status === 'Completed' || currentScan.status === 'Stopped') {
+            if (currentScan.status === 'Stopped') {
+              addLog(`[WARNING] Đợt quét SCN-${String(scanId).padStart(3, '0')} đã bị DỪNG bởi người dùng. Đang nạp dữ liệu quét được...`);
+            } else {
+              addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
+            }
             const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
             const vulnsData = vulnsRes.data;
             const { mappedFindings, crit, high, med, low } = processFindings(vulnsData);
@@ -110,7 +114,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
               target: currentScan.url,
               time: new Date().toISOString().replace('T', ' ').substring(0, 19),
               errors_found: mappedFindings.length,
-              status: 'Completed',
+              status: currentScan.status,
               severities: { critical: crit, high: high, medium: med, low: low },
               vulnerabilities: mappedFindings.map(v => v.id)
             };
@@ -252,6 +256,17 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       addLog(`[CRITICAL] Error: ${errorMsg}`);
       setScanProgress(0);
       setIsScanning(false);
+    }
+  };
+
+  const handleStopScan = async () => {
+    if (!currentViewScanId) return;
+    try {
+      addLog(`[WARNING] Đang gửi yêu cầu dừng quét (Scan ID: ${currentViewScanId})...`);
+      await api.post(`/scans/${currentViewScanId}/stop`);
+      addLog(`[WARNING] Đã nhận lệnh dừng. Đang chờ hệ thống xử lý hủy các tác vụ ngầm...`);
+    } catch (err: any) {
+      addLog(`[ERROR] Không thể dừng quét: ${err.message}`);
     }
   };
 
@@ -424,15 +439,27 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                 <span>Logs {isScanning && `(${scanProgress}%)`}</span>
               </button>
 
-              <button
-                id="scan-now-btn"
-                type="submit"
-                disabled={isScanning}
-                className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white px-7 py-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 cursor-pointer hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] border border-blue-450/10 shadow-md duration-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-              >
-                <Play className="w-4 h-4 stroke-[3]" />
-                <span>Quét Ngay</span>
-              </button>
+              {isScanning ? (
+                <button
+                  id="stop-scan-btn"
+                  type="button"
+                  onClick={handleStopScan}
+                  className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:to-red-800 text-white px-7 py-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 cursor-pointer hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] border border-red-400/20 shadow-md duration-300 transition-all shrink-0"
+                >
+                  <AlertOctagon className="w-4 h-4 stroke-[3]" />
+                  <span>Dừng Quét</span>
+                </button>
+              ) : (
+                <button
+                  id="scan-now-btn"
+                  type="submit"
+                  disabled={isScanning}
+                  className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white px-7 py-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 cursor-pointer hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] border border-blue-450/10 shadow-md duration-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                >
+                  <Play className="w-4 h-4 stroke-[3]" />
+                  <span>Quét Ngay</span>
+                </button>
+              )}
             </div>
           </form>
         </div>

@@ -45,7 +45,7 @@ export interface SystemConfig {
   auth_header?: string;
 }
 
-export type ActiveTab = 'dashboard' | 'history' | 'config';
+export type ActiveTab = 'dashboard' | 'history' | 'config' | 'users' | 'overview';
 
 export interface UserSession {
   email: string;
@@ -53,4 +53,14 @@ export interface UserSession {
   logo?: string;
   isAuthenticated: boolean;
   token?: string;
+  role?: 'user' | 'admin';
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'blocked';
+  createdAt: string;
+  lastLogin?: string;
 }

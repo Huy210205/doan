@@ -99,6 +99,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng")
         
+    if getattr(user, 'is_blocked', False):
+        raise HTTPException(status_code=403, detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin.")
+        
     if not user.is_verified:
         # Generate new OTP
         otp_code = ''.join(random.choices(string.digits, k=6))
@@ -115,8 +118,64 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         "token_type": "bearer", 
         "email": user.email,
         "username": user.username,
-        "logo": user.logo
+        "logo": user.logo,
+        "role": user.role
     }
+
+@router.get("/users")
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền truy cập")
+    users = db.query(User).all()
+    return [{
+        "id": str(u.id),
+        "email": u.email,
+        "role": u.role,
+        "status": "blocked" if getattr(u, 'is_blocked', False) else ("active" if u.is_verified else "unverified"),
+        "createdAt": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else ""
+    } for u in users]
+
+@router.put("/users/{user_id}/role")
+def update_user_role(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền thực hiện")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Không thể tự đổi quyền của chính mình")
+        
+    user.role = 'user' if user.role == 'admin' else 'admin'
+    db.commit()
+    return {"message": "Cập nhật quyền thành công", "new_role": user.role}
+
+@router.put("/users/{user_id}/status")
+def update_user_status(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền thực hiện")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Không thể tự khóa chính mình")
+        
+    user.is_blocked = not getattr(user, 'is_blocked', False)
+    db.commit()
+    return {"message": "Cập nhật trạng thái thành công", "is_blocked": user.is_blocked}
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Chỉ admin mới có quyền thực hiện")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Không tìm thấy người dùng")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Không thể tự xóa chính mình")
+        
+    db.delete(user)
+    db.commit()
+    return {"message": "Xóa người dùng thành công"}
 
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):

@@ -5,6 +5,8 @@ import DashboardView from './components/DashboardView';
 import HistoryView from './components/HistoryView';
 import ConfigView from './components/ConfigView';
 import LandingPage from './components/LandingPage';
+import UserManagementView from './components/UserManagementView';
+import AdminDashboardView from './components/AdminDashboardView';
 import { ScanHistoryItem, SystemConfig, ActiveTab, UserSession } from './types';
 import contentData from './data/contentData.json';
 
@@ -180,6 +182,18 @@ export default function App() {
             onSaveConfig={handleSaveConfig}
           />
         </div>
+
+        {session.role === 'admin' && (
+          <>
+            <div className={activeTab === 'overview' ? 'block' : 'hidden'}>
+              <AdminDashboardView session={session} />
+            </div>
+
+            <div className={activeTab === 'users' ? 'block' : 'hidden'}>
+              <UserManagementView session={session} />
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { LayoutDashboard, History, Settings, LogOut, User, Sun, Moon, Camera, X, Loader2 } from 'lucide-react';
+import { LayoutDashboard, History, Settings, LogOut, User, Sun, Moon, Camera, X, Loader2, Users, Activity } from 'lucide-react';
 import { ActiveTab, UserSession } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
@@ -150,6 +150,35 @@ export default function Sidebar({ activeTab, onTabChange, session, onSessionUpda
               </button>
             );
           })}
+          {session.role === 'admin' && (
+            <>
+              <div className="pt-4 pb-2">
+                <span className="text-[10px] font-mono tracking-widest text-cyber-text-muted uppercase font-bold pl-4">Admin</span>
+              </div>
+              <button
+                onClick={() => onTabChange('overview')}
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'overview'
+                    ? 'bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-purple shadow-[0_4px_15px_rgba(139,92,246,0.15)]'
+                    : 'text-cyber-text-muted border border-transparent hover:text-cyber-text-main hover:bg-cyber-purple/5'
+                }`}
+              >
+                <Activity className="w-5 h-5" />
+                <span>Tổng quan</span>
+              </button>
+              <button
+                onClick={() => onTabChange('users')}
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'users'
+                    ? 'bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-purple shadow-[0_4px_15px_rgba(139,92,246,0.15)]'
+                    : 'text-cyber-text-muted border border-transparent hover:text-cyber-text-main hover:bg-cyber-purple/5'
+                }`}
+              >
+                <Users className="w-5 h-5" />
+                <span>Người dùng</span>
+              </button>
+            </>
+          )}
         </nav>
       </div>
 
