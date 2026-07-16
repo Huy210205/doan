@@ -97,8 +97,15 @@ export default function LoginScreen({ onLoginSuccess, onBack }: LoginScreenProps
       }
     } catch (err: any) {
       if (err.response?.status === 403) {
-        setSuccessMsg(err.response.data.detail);
-        setMode('otp');
+        const detail = err.response.data.detail || '';
+        // Tài khoản bị khóa → hiện lỗi luôn, không chuyển sang OTP
+        if (detail.includes('bị khóa') || detail.includes('is_blocked') || detail.includes('khóa')) {
+          setErrorMsg(detail);
+        } else {
+          // Tài khoản chưa xác thực → chuyển sang màn hình nhập OTP
+          setSuccessMsg(detail);
+          setMode('otp');
+        }
       } else if (err.response?.data?.detail) {
         setErrorMsg(err.response.data.detail);
       } else {

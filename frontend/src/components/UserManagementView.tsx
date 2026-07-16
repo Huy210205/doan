@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Edit2, Trash2, Lock, Unlock, Shield, ShieldOff, User, AlertTriangle } from 'lucide-react';
+import { Users, Search, Trash2, Lock, Unlock, Shield, ShieldOff, User, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { UserProfile, UserSession } from '../types';
 import api from '../api';
+
+type Toast = { message: string; type: 'success' | 'error' };
 
 export default function UserManagementView({ session }: { session: UserSession }) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'toggleStatus', user: UserProfile} | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{type: 'delete' | 'toggleStatus' | 'toggleRole', user: UserProfile} | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -25,35 +33,38 @@ export default function UserManagementView({ session }: { session: UserSession }
 
   const filteredUsers = users.filter(u => u.email.toLowerCase().includes(search.toLowerCase()));
 
-  const toggleRole = async (id: string) => {
-    try {
-      await api.put(`/auth/users/${id}/role`, {}, { headers: { Authorization: `Bearer ${session.token}` } });
-      setUsers(users.map(u => u.id === id ? { ...u, role: u.role === 'admin' ? 'user' : 'admin' } : u));
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Có lỗi xảy ra');
-    }
-  };
-
   const executeConfirmAction = async () => {
     if (!confirmAction) return;
     const { type, user } = confirmAction;
-    
+    setConfirmAction(null);
+
     if (type === 'delete') {
       try {
         await api.delete(`/auth/users/${user.id}`, { headers: { Authorization: `Bearer ${session.token}` } });
-        setUsers(users.filter(u => u.id !== user.id));
+        setUsers(prev => prev.filter(u => u.id !== user.id));
+        showToast(`Đã xóa tài khoản ${user.email} thành công.`, 'success');
       } catch (err: any) {
-        alert(err.response?.data?.detail || 'Có lỗi xảy ra');
+        showToast(err.response?.data?.detail || 'Có lỗi xảy ra khi xóa tài khoản.', 'error');
       }
     } else if (type === 'toggleStatus') {
       try {
         await api.put(`/auth/users/${user.id}/status`, {}, { headers: { Authorization: `Bearer ${session.token}` } });
-        setUsers(users.map(u => u.id === user.id ? { ...u, status: u.status === 'active' ? 'blocked' : 'active' } : u));
+        const wasActive = user.status === 'active';
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: wasActive ? 'blocked' : 'active' } : u));
+        showToast(wasActive ? `Đã khóa tài khoản ${user.email} thành công.` : `Đã mở khóa tài khoản ${user.email} thành công.`, 'success');
       } catch (err: any) {
-        alert(err.response?.data?.detail || 'Có lỗi xảy ra');
+        showToast(err.response?.data?.detail || 'Có lỗi xảy ra khi cập nhật trạng thái.', 'error');
+      }
+    } else if (type === 'toggleRole') {
+      try {
+        await api.put(`/auth/users/${user.id}/role`, {}, { headers: { Authorization: `Bearer ${session.token}` } });
+        const wasAdmin = user.role === 'admin';
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: wasAdmin ? 'user' : 'admin' } : u));
+        showToast(wasAdmin ? `Đã hạ quyền ${user.email} xuống User.` : `Đã thăng quyền ${user.email} lên Admin thành công.`, 'success');
+      } catch (err: any) {
+        showToast(err.response?.data?.detail || 'Có lỗi xảy ra khi đổi quyền.', 'error');
       }
     }
-    setConfirmAction(null);
   };
 
   return (
@@ -89,7 +100,9 @@ export default function UserManagementView({ session }: { session: UserSession }
               </tr>
             </thead>
             <tbody className="divide-y divide-cyber-border/50">
-              {filteredUsers.map(user => (
+              {isLoading ? (
+                <tr><td colSpan={5} className="py-8 text-center text-cyber-text-muted">Đang tải...</td></tr>
+              ) : filteredUsers.map(user => (
                 <tr key={user.id} className="hover:bg-cyber-blue/5 transition-colors">
                   <td className="py-4 px-6 font-medium">{user.email}</td>
                   <td className="py-4 px-6">
@@ -114,7 +127,7 @@ export default function UserManagementView({ session }: { session: UserSession }
                   <td className="py-4 px-6 text-sm text-cyber-text-muted">{user.createdAt}</td>
                   <td className="py-4 px-6 text-right space-x-2">
                     <button 
-                      onClick={() => toggleRole(user.id)}
+                      onClick={() => setConfirmAction({ type: 'toggleRole', user })}
                       className="p-2 rounded-lg hover:bg-cyber-purple/10 text-cyber-text-muted hover:text-cyber-purple transition-colors"
                       title={user.role === 'admin' ? "Hạ quyền thành User" : "Thăng quyền Admin"}
                     >
@@ -137,7 +150,7 @@ export default function UserManagementView({ session }: { session: UserSession }
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
+              {!isLoading && filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-cyber-text-muted">Không tìm thấy người dùng nào.</td>
                 </tr>
@@ -159,7 +172,12 @@ export default function UserManagementView({ session }: { session: UserSession }
             </div>
             <div className="p-6">
               <p className="text-cyber-text-main mb-4">
-                Bạn có chắc chắn muốn {confirmAction.type === 'delete' ? 'xóa vĩnh viễn' : (confirmAction.user.status === 'active' ? 'khóa' : 'mở khóa')} tài khoản này?
+                {confirmAction.type === 'delete'
+                  ? 'Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản này?'
+                  : confirmAction.type === 'toggleStatus'
+                    ? (confirmAction.user.status === 'active' ? 'Bạn có chắc chắn muốn khóa tài khoản này?' : 'Bạn có chắc chắn muốn mở khóa tài khoản này?')
+                    : (confirmAction.user.role === 'admin' ? 'Bạn có chắc chắn muốn hạ quyền tài khoản này xuống User?' : 'Bạn có chắc chắn muốn thăng quyền tài khoản này lên Admin?')
+                }
               </p>
               <div className="flex items-center gap-3 p-3 bg-cyber-input-bg rounded-xl border border-cyber-border/50">
                 <div className={`p-2 rounded-lg ${confirmAction.user.role === 'admin' ? 'bg-cyber-purple/20 text-cyber-purple' : 'bg-cyber-blue/20 text-cyber-blue'}`}>
@@ -192,15 +210,37 @@ export default function UserManagementView({ session }: { session: UserSession }
                 className={`px-4 py-2 rounded-lg font-bold transition-all shadow-lg ${
                   confirmAction.type === 'delete' 
                     ? 'bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30' 
-                    : confirmAction.user.status === 'active'
-                      ? 'bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500 hover:text-black border border-yellow-500/30'
-                      : 'bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/30'
+                    : confirmAction.type === 'toggleStatus'
+                      ? confirmAction.user.status === 'active'
+                        ? 'bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500 hover:text-black border border-yellow-500/30'
+                        : 'bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/30'
+                      : 'bg-cyber-purple/20 text-cyber-purple hover:bg-cyber-purple hover:text-white border border-cyber-purple/30'
                 }`}
               >
-                {confirmAction.type === 'delete' ? 'Xóa vĩnh viễn' : (confirmAction.user.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa')}
+                {confirmAction.type === 'delete'
+                  ? 'Xóa vĩnh viễn'
+                  : confirmAction.type === 'toggleStatus'
+                    ? (confirmAction.user.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa')
+                    : (confirmAction.user.role === 'admin' ? 'Hạ xuống User' : 'Thăng lên Admin')
+                }
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[70] flex items-center gap-3 px-5 py-4 rounded-2xl border shadow-2xl animate-slideUp transition-all ${
+          toast.type === 'success'
+            ? 'bg-emerald-950/95 border-emerald-500/40 text-emerald-300'
+            : 'bg-red-950/95 border-red-500/40 text-red-300'
+        }`}>
+          {toast.type === 'success'
+            ? <CheckCircle className="w-5 h-5 shrink-0" />
+            : <XCircle className="w-5 h-5 shrink-0" />
+          }
+          <span className="text-sm font-semibold">{toast.message}</span>
         </div>
       )}
     </div>
