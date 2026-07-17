@@ -3,7 +3,6 @@ import { Search, Play, Terminal, AlertOctagon, AlertTriangle, AlertCircle, Shiel
 import { Vulnerability, ScanHistoryItem, SystemConfig } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
-import AIEngineLive from './AIEngineLive';
 
 interface DashboardViewProps {
   onAddHistoryItem: (newItem: ScanHistoryItem) => void;
@@ -334,7 +333,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       .slice(0, 7)
       .reverse();
 
-    const maxVulns = Math.max(...relevantScans.map(s => s.vulns), 1);
+    const maxVulns = relevantScans.length > 0
+      ? Math.max(...relevantScans.map(s => s.vulns), 1)
+      : 1;
     return { relevantScans, maxVulns };
   };
 
@@ -353,8 +354,6 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             Quét và phát hiện lỗ hổng ứng dụng thông qua dịch vụ AI học phân loại (ML Classifier).
           </p>
         </div>
-
-        <AIEngineLive isScanning={isScanning} />
       </div>
 
       {/* Target URL Selector Input and Console Controls Section */}
@@ -695,7 +694,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                     <line x1="50" y1="50" x2="50" y2="70" stroke="rgba(59,130,246,0.1)" strokeWidth="0.3" strokeLinecap="round" />
                     <circle cx="50" cy="30" r="1.2" fill="rgba(99,220,255,0.8)" />
                   </g>
-                  <style dangerouslySetInnerHTML={{__html: '@keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }'}} />
+                  <style dangerouslySetInnerHTML={{ __html: '@keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' }} />
                 </svg>
                 {/* Text overlay in center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -726,6 +725,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                   }));
 
                   // Build smooth cubic bezier path
+                  if (pts.length === 0) return null;
                   const pathD = pts.reduce((acc, pt, i) => {
                     if (i === 0) return `M ${pt.x},${pt.y}`;
                     const prev = pts[i - 1];
@@ -734,7 +734,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                   }, '');
 
                   // Fill area under curve
-                  const areaD = pathD + ` L ${pts[pts.length-1].x},${H-pad} L ${pts[0].x},${H-pad} Z`;
+                  const areaD = pts.length > 1
+                    ? pathD + ` L ${pts[pts.length - 1].x},${H - pad} L ${pts[0].x},${H - pad} Z`
+                    : '';
 
                   return (
                     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
@@ -750,7 +752,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                       </defs>
                       {/* Grid lines */}
                       {[0.25, 0.5, 0.75].map(t => (
-                        <line key={t} x1={pad} y1={pad + t*(H-pad*2)} x2={W-pad} y2={pad + t*(H-pad*2)}
+                        <line key={t} x1={pad} y1={pad + t * (H - pad * 2)} x2={W - pad} y2={pad + t * (H - pad * 2)}
                           stroke="rgba(99,130,246,0.1)" strokeWidth="0.5" strokeDasharray="3 4" />
                       ))}
                       {/* Fill area */}
@@ -769,7 +771,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
                               strokeWidth={isCurrent ? 1.5 : 0.8}
                               filter={isCurrent ? 'url(#glow)' : undefined}
                             />
-                            <text x={pt.x} y={H-2} textAnchor="middle"
+                            <text x={pt.x} y={H - 2} textAnchor="middle"
                               fontSize="7" fill={isCurrent ? '#38bdf8' : 'rgba(150,170,200,0.7)'}
                               fontFamily="monospace" fontWeight={isCurrent ? 'bold' : 'normal'}>
                               {pt.s.id.split('-')[1]}
