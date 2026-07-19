@@ -25,6 +25,10 @@ Yêu cầu máy tính phải cài đặt và **đang mở sẵn** ứng dụng [
 ### 1. Khởi chạy toàn bộ hệ thống
 Mở Terminal tại thư mục gốc của dự án (`d:\doan`) và chạy lệnh:
 
+Trước khi chạy lần đầu, hãy tạo file `.env` ở thư mục gốc bằng cách copy từ `.env.example`:
+
+Sau đó mở file `.env` và điền `SMTP_EMAIL` / `SMTP_PASSWORD` nếu muốn gửi mail thật. Nếu để trống, hệ thống sẽ dùng chế độ demo và in OTP ra log backend.
+
 ```bash
 docker-compose up --build
 ```
