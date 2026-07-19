@@ -23,11 +23,12 @@ Hiện tại toàn bộ hệ thống (Frontend, Backend, và Database) đã đư
 Yêu cầu máy tính phải cài đặt và **đang mở sẵn** ứng dụng [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ### 1. Khởi chạy toàn bộ hệ thống
-Mở Terminal tại thư mục gốc của dự án (`d:\doan`) và chạy lệnh:
 
 Trước khi chạy lần đầu, hãy tạo file `.env` ở thư mục gốc bằng cách copy từ `.env.example`:
 
 Sau đó mở file `.env` và điền `SMTP_EMAIL` / `SMTP_PASSWORD` nếu muốn gửi mail thật. Nếu để trống, hệ thống sẽ dùng chế độ demo và in OTP ra log backend.
+
+Mở Terminal tại thư mục gốc của dự án (`d:\doan`) và chạy lệnh:
 
 ```bash
 docker-compose up --build
