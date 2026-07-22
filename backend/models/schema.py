@@ -55,6 +55,8 @@ class Vulnerability(Base):
     parameter_name = Column(String(100), nullable=True)
     payload = Column(Text, nullable=True)
     evidence = Column(Text, nullable=True)
+    ai_recommendation = Column(Text, nullable=True)
+    ai_code_snippet = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     scan = relationship("Scan", back_populates="vulnerabilities")
