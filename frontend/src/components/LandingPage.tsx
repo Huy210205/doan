@@ -304,7 +304,7 @@ export default function LandingPage({ onLoginClick, theme, onToggleTheme }: Land
               {
                 icon: <FileText className="w-6 h-6" />,
                 color: 'purple',
-                label: 'Báo Cáo PDF & HTML',
+                label: 'Báo Cáo PDF',
                 desc: 'Xuất báo cáo chi tiết với danh sách lỗ hổng, payload, bằng chứng và hướng dẫn khắc phục.',
                 delay: 200,
               },
@@ -407,7 +407,7 @@ export default function LandingPage({ onLoginClick, theme, onToggleTheme }: Land
             <div className="space-y-4">
               {[
                 { title: 'Chuẩn OWASP Top 10', desc: 'Phủ đầy đủ 4/10 lỗ hổng phổ biến nhất theo chuẩn OWASP: SQLi, XSS, CSRF, LFI.' },
-                { title: 'Báo cáo xuất được ngay', desc: 'PDF và HTML report với màu cảnh báo theo mức độ, sẵn sàng nộp cho khách hàng.' },
+                { title: 'Báo cáo xuất được ngay', desc: 'PDF report với màu cảnh báo theo mức độ, sẵn sàng nộp cho khách hàng.' },
                 { title: 'Quét có xác thực', desc: 'Hỗ trợ truyền Cookie / Authorization header để quét sâu vào các trang yêu cầu đăng nhập.' },
                 { title: 'Dashboard quản trị', desc: 'Admin có thể xem tổng quan hoạt động của toàn hệ thống theo biểu đồ từng ngày.' },
                 { title: 'Dừng quét linh hoạt', desc: 'Có thể dừng giữa chừng và giữ lại kết quả đã tìm được — không mất dữ liệu.' },

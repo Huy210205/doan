@@ -13,10 +13,12 @@ from scanner.xss import XSSScanner
 from scanner.csrf import CSRFScanner
 from scanner.lfi import LFIScanner
 from models.classifier import AIClassifier
+from ml.ai_remediation import AIRemediationService
 from api.deps import get_current_user
 
 router = APIRouter()
 classifier = AIClassifier()
+ai_remediator = AIRemediationService()
 
 cancel_flags = {}
 
@@ -194,9 +196,51 @@ def get_vulnerabilities(scan_id: int, db: Session = Depends(get_db), current_use
             "evidence": v.evidence,
             "description": description,
             "recommendation": recommendation,
-            "code_snippet": code_snippet
+            "code_snippet": code_snippet,
+            "ai_recommendation": v.ai_recommendation,
+            "ai_code_snippet": v.ai_code_snippet
         })
     return result
+
+@router.post("/scans/vulnerabilities/{vuln_id}/ai-remediation")
+def generate_ai_remediation(vuln_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    vuln = db.query(Vulnerability).filter(Vulnerability.id == vuln_id).first()
+    if not vuln:
+        raise HTTPException(status_code=404, detail="Vulnerability not found")
+        
+    scan = db.query(Scan).filter(Scan.id == vuln.scan_id, Scan.user_id == current_user.id).first()
+    if not scan:
+        raise HTTPException(status_code=403, detail="Not authorized to access this scan")
+
+    # If already generated, return cached
+    if vuln.ai_recommendation and vuln.ai_code_snippet:
+        return {
+            "ai_recommendation": vuln.ai_recommendation,
+            "ai_code_snippet": vuln.ai_code_snippet
+        }
+
+    kb = db.query(RemediationKB).filter(RemediationKB.vuln_type == vuln.vuln_type).first()
+    base_recommendation = kb.recommendation if kb else "Cần rà soát lại mã nguồn. Validate đầu vào."
+
+    try:
+        ai_rec, ai_code = ai_remediator.generate_remediation(
+            vuln_type=vuln.vuln_type,
+            url=vuln.url,
+            parameter=vuln.parameter_name,
+            payload=vuln.payload,
+            base_recommendation=base_recommendation
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    vuln.ai_recommendation = ai_rec
+    vuln.ai_code_snippet = ai_code
+    db.commit()
+
+    return {
+        "ai_recommendation": ai_rec,
+        "ai_code_snippet": ai_code
+    }
 
 @router.delete("/scans/{scan_id}")
 def delete_scan(scan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

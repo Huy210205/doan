@@ -9,6 +9,8 @@ export interface Vulnerability {
   recommendation: string;
   evidence: string;
   code_block: string;
+  ai_recommendation?: string;
+  ai_code_snippet?: string;
 }
 
 export interface ScanHistoryItem {

@@ -4,7 +4,6 @@ import { ScanHistoryItem, Vulnerability } from '../types';
 import contentData from '../data/contentData.json';
 import api from '../api';
 import { generatePDFReport } from '../utils/pdfExport';
-import { generateHTMLReport } from '../utils/htmlExport';
 
 interface HistoryViewProps {
   activeTab?: string;
@@ -51,7 +50,7 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
   const fetchVulnerabilities = async (rawId: number) => {
     setIsLoadingVulns(true);
     try {
-      const res = await api.get(`/scans/${rawId}/vulnerabilities`);
+      const res = await api.get(`/scans/${rawId}/vulnerabilities?t=${Date.now()}`);
       const mappedFindings: Vulnerability[] = res.data.map((v: any) => ({
         id: `vuln-${v.id}`,
         type: v.type,
@@ -63,7 +62,9 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
         payload: v.payload,
         evidence: v.evidence,
         recommendation: v.recommendation,
-        code_block: v.code_snippet || '// Liên hệ admin để xem code hướng dẫn'
+        code_block: v.code_snippet || '// Liên hệ admin để xem code hướng dẫn',
+        ai_recommendation: v.ai_recommendation,
+        ai_code_snippet: v.ai_code_snippet
       }));
       setVulnsData(mappedFindings);
     } catch (err) {
@@ -90,32 +91,13 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
         parameter: v.param,
         payload: v.payload,
         recommendation: v.recommendation,
+        ai_recommendation: v.ai_recommendation,
+        ai_code_snippet: v.ai_code_snippet
       }));
       generatePDFReport(item.url, mappedFindings, item.id);
     } catch (err) {
       console.error('Failed to generate PDF', err);
       alert('Lỗi tải báo cáo PDF!');
-    } finally {
-      setDownloadingPdfId(null);
-    }
-  };
-
-  const handleHtml = async (item: any) => {
-    setDownloadingPdfId(item.id + '_html'); // Dùng chung state loading cho tiện
-    try {
-      const res = await api.get(`/scans/${item.raw_id}/vulnerabilities`);
-      const mappedFindings: Vulnerability[] = res.data.map((v: any) => ({
-        id: `vuln-${v.id}`,
-        type: v.type,
-        level: v.severity.toUpperCase(),
-        parameter: v.param,
-        payload: v.payload,
-        recommendation: v.recommendation,
-      }));
-      generateHTMLReport(item.url, mappedFindings, item.id);
-    } catch (err) {
-      console.error('Failed to generate HTML', err);
-      alert('Lỗi tải báo cáo HTML!');
     } finally {
       setDownloadingPdfId(null);
     }
@@ -281,15 +263,6 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           <span>PDF</span>
                         </button>
 
-                        <button
-                          onClick={() => handleHtml(item)}
-                          disabled={downloadingPdfId === item.id + '_html' || item.status === 'running'}
-                          className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 hover:text-white transition-all duration-200 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 hover:scale-105 active:scale-95"
-                        >
-                          {downloadingPdfId === item.id + '_html' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
-                          <span>HTML</span>
-                        </button>
-
                         {item.status === 'running' && (
                           <button
                             onClick={() => handleStopScan(item.raw_id)}
@@ -403,6 +376,23 @@ export default function HistoryView({ activeTab, onDeleteHistoryItem }: HistoryV
                           <span className="font-bold text-cyber-text-main block mb-1">Khuyến nghị điều chỉnh:</span>
                           {vuln.recommendation}
                         </div>
+                        {vuln.ai_recommendation && (
+                          <div className="p-4 bg-cyber-blue/10 border border-cyber-blue/30 rounded-xl mt-3">
+                            <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-cyber-blue mb-2 flex items-center gap-2">
+                              <span>✨ Khuyến nghị từ AI</span>
+                            </h4>
+                            <p className="text-sm text-cyber-text-main leading-relaxed mb-3">
+                              {vuln.ai_recommendation}
+                            </p>
+                            {vuln.ai_code_snippet && (
+                              <div className="bg-[#0d1117] p-3 rounded-lg border border-cyber-border/60 overflow-x-auto">
+                                <pre className="text-xs font-mono text-emerald-400/90 whitespace-pre-wrap">
+                                  <code>{vuln.ai_code_snippet}</code>
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })

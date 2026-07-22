@@ -22,6 +22,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
   const [activeFindings, setActiveFindings] = useState<Vulnerability[]>([]);
   const [expandedVulnId, setExpandedVulnId] = useState<string | null>(null);
   const [scanError, setScanError] = useState<string>('');
+  const [generatingAIVulnId, setGeneratingAIVulnId] = useState<string | null>(null);
 
   const [pastScans, setPastScans] = useState<any[]>([]);
   const [currentViewScanId, setCurrentViewScanId] = useState<number | null>(null);
@@ -64,7 +65,17 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             }
           }
 
-          await loadScanData(scanToLoad, scans, false);
+          // Check if any scan is running and resume it
+          const runningScan = scans.find((s: any) => s.status === 'running');
+          if (runningScan) {
+            setIsScanning(true);
+            setScanProgress(50);
+            setCurrentViewScanId(runningScan.raw_id);
+            pollScanStatus(runningScan.raw_id);
+            addLog(`[INFO] Phát hiện tiến trình quét đang chạy (SCN-${String(runningScan.raw_id).padStart(3, '0')}). Đang tiếp tục theo dõi...`);
+          } else {
+            await loadScanData(scanToLoad, scans, false);
+          }
         }
       } catch (err) {
         console.error("Failed to load initial scans:", err);
@@ -103,7 +114,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
             } else {
               addLog(`[SUCCESS] Quét hoàn tất. Scan ID: ${scanId}. Bắt đầu nạp dữ liệu lỗ hổng...`);
             }
-            const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
+            const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities?t=${Date.now()}`);
             const vulnsData = vulnsRes.data;
             const { mappedFindings, crit, high, med, low } = processFindings(vulnsData);
 
@@ -155,7 +166,7 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
       addLog(`[INFO] Đang nạp dữ liệu từ lịch sử quét SCN-${String(scanId).padStart(3, '0')}...`);
 
-      const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities`);
+      const vulnsRes = await api.get(`/scans/${scanId}/vulnerabilities?t=${Date.now()}`);
       const vulnsData = vulnsRes.data;
 
       processFindings(vulnsData);
@@ -184,7 +195,9 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       payload: v.payload,
       evidence: v.evidence,
       recommendation: v.recommendation,
-      code_block: v.code_snippet || '// Liên hệ admin để xem code hướng dẫn'
+      code_block: v.code_snippet || '// Liên hệ admin để xem code hướng dẫn',
+      ai_recommendation: v.ai_recommendation,
+      ai_code_snippet: v.ai_code_snippet
     }));
 
     setActiveFindings(mappedFindings);
@@ -337,6 +350,36 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
       ? Math.max(...relevantScans.map(s => s.vulns), 1)
       : 1;
     return { relevantScans, maxVulns };
+  };
+
+  const handleGenerateAIRemediation = async (vulnIdStr: string) => {
+    // vulnIdStr is like "vuln-15", we need the raw id
+    const rawId = parseInt(vulnIdStr.replace('vuln-', ''), 10);
+    if (isNaN(rawId)) return;
+
+    setGeneratingAIVulnId(vulnIdStr);
+    try {
+      addLog(`[INFO] Đang gọi AI để sinh mã khắc phục cho lỗ hổng ID: ${rawId}...`);
+      const res = await api.post(`/scans/vulnerabilities/${rawId}/ai-remediation`);
+      
+      setActiveFindings(prev => prev.map(f => {
+        if (f.id === vulnIdStr) {
+          return {
+            ...f,
+            ai_recommendation: res.data.ai_recommendation,
+            ai_code_snippet: res.data.ai_code_snippet
+          };
+        }
+        return f;
+      }));
+      addLog(`[SUCCESS] Đã tạo gợi ý khắc phục thành công cho ID: ${rawId}.`);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.detail || err.message;
+      addLog(`[ERROR] Không thể tạo gợi ý khắc phục: ${errorMsg}`);
+      alert(`Có lỗi xảy ra khi gọi AI: ${errorMsg}`);
+    } finally {
+      setGeneratingAIVulnId(null);
+    }
   };
 
   const donut = getDonutChartData();
@@ -934,11 +977,47 @@ export default function DashboardView({ onAddHistoryItem, systemConfig }: Dashbo
 
                           <div className="space-y-1">
                             <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-cyber-text-main">
-                              Khuyến nghị khắc phục từ AI
+                              Khuyến nghị khắc phục
                             </h4>
                             <p className="text-xs text-cyber-text-muted leading-relaxed">
                               {finding.recommendation}
                             </p>
+                          </div>
+
+                          {/* AI Remediation block */}
+                          <div className="space-y-3 pt-2">
+                            {finding.ai_recommendation ? (
+                              <div className="p-4 bg-cyber-blue/10 border border-cyber-blue/30 rounded-xl">
+                                <h4 className="text-xs font-bold uppercase font-mono tracking-wider text-cyber-blue mb-2 flex items-center gap-2">
+                                  <span>✨ Khuyến nghị từ AI</span>
+                                </h4>
+                                <p className="text-sm text-cyber-text-main leading-relaxed mb-3">
+                                  {finding.ai_recommendation}
+                                </p>
+                                {finding.ai_code_snippet && (
+                                  <div className="bg-[#0d1117] p-3 rounded-lg border border-cyber-border/60 overflow-x-auto">
+                                    <pre className="text-xs font-mono text-emerald-400/90 whitespace-pre-wrap">
+                                      <code>{finding.ai_code_snippet}</code>
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleGenerateAIRemediation(finding.id); }}
+                                disabled={generatingAIVulnId === finding.id}
+                                className="text-xs px-4 py-2 bg-cyber-blue/10 hover:bg-cyber-blue/20 text-cyan-400 border border-cyber-blue/30 rounded-lg font-mono transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                              >
+                                {generatingAIVulnId === finding.id ? (
+                                  <>
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    Đang phân tích & tạo mã...
+                                  </>
+                                ) : (
+                                  <>✨ Tự động tạo mã khắc phục với AI</>
+                                )}
+                              </button>
+                            )}
                           </div>
 
                           {/* Proof of Evidence block */}
