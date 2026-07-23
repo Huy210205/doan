@@ -15,11 +15,11 @@ class AIClassifier:
         if os.path.exists(MODEL_PATH):
             self.model = joblib.load(MODEL_PATH)
             
-    def predict_severity(self, vuln_type_str, payload, response_status):
-        pred, _ = self.predict_with_confidence(vuln_type_str, payload, response_status)
+    def predict_severity(self, vuln_type_str, payload, response_status, response_time_ms=100, content_length_diff=0, error_keyword_match=0):
+        pred, _ = self.predict_with_confidence(vuln_type_str, payload, response_status, response_time_ms, content_length_diff, error_keyword_match)
         return pred
         
-    def predict_with_confidence(self, vuln_type_str, payload, response_status):
+    def predict_with_confidence(self, vuln_type_str, payload, response_status, response_time_ms=100, content_length_diff=0, error_keyword_match=0):
         if self.model is None:
             return "Unknown", 0.0
             
@@ -29,7 +29,7 @@ class AIClassifier:
         special_chars = 1 if payload and any(c in payload for c in ["'", "\"", "<", ">", "%", "&", "|", ";"]) else 0
         
         # Đưa vào model dự đoán
-        features = [[v_type, p_len, special_chars, response_status]]
+        features = [[v_type, p_len, special_chars, response_status, response_time_ms, content_length_diff, error_keyword_match]]
         
         # Dự đoán class
         pred = self.model.predict(features)[0]

@@ -45,7 +45,12 @@ class LFIScanner:
                     else:
                         response = requests.get(url, params=test_params, headers=self.headers, timeout=5)
                         
+                    response_time_ms = int(response.elapsed.total_seconds() * 1000)
+                    content_length_diff = len(response.text)
                     response_text = response.text.lower()
+                    
+                    err_match = 1 if "warning" in response_text or "include" in response_text else 0
+                    
                     if "root:x:0:0" in response_text or "[extensions]" in response_text:
                         vulnerabilities.append({
                             "url": url,
@@ -53,7 +58,10 @@ class LFIScanner:
                             "param": param_name,
                             "payload": payload,
                             "severity": "High",
-                            "evidence": "Sensitive file content (like /etc/passwd or win.ini) found in response."
+                            "evidence": "Sensitive file content (like /etc/passwd or win.ini) found in response.",
+                            "response_time_ms": response_time_ms,
+                            "content_length_diff": content_length_diff,
+                            "error_keyword_match": err_match
                         })
                         break
                 except Exception as e:

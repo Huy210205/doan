@@ -1,10 +1,27 @@
 {
-    "accuracy": 0.682,
-    "dataset_size": 2500,
+    "accuracy": 0.9146666666666666,
+    "dataset_size": 7500,
     "features_used": [
         "vuln_type",
         "payload_length",
         "has_special_chars",
-        "response_status"
-    ]
+        "response_status",
+        "response_time_ms",
+        "content_length_diff",
+        "error_keyword_match"
+    ],
+    "best_params": {
+        "max_depth": 10,
+        "min_samples_split": 2,
+        "n_estimators": 200
+    },
+    "feature_importances": {
+        "content_length_diff": 0.3813,
+        "payload_length": 0.1612,
+        "response_time_ms": 0.1542,
+        "vuln_type": 0.1212,
+        "has_special_chars": 0.0918,
+        "error_keyword_match": 0.0509,
+        "response_status": 0.0394
+    }
 }
