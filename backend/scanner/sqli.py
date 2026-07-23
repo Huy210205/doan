@@ -60,25 +60,30 @@ class SQLiScanner:
                     else:
                         response = requests.get(url, params=test_params, headers=self.headers, timeout=5)
                         
+                    response_time_ms = int(response.elapsed.total_seconds() * 1000)
+                    content_length_diff = len(response.text)
                     response_text = response.text.lower()
                     
                     # 1. Error-based SQLi: Tìm thông báo lỗi SQL
+                    err_match = 0
                     for error in self.sql_errors:
                         if error in response_text:
+                            err_match = 1
                             vulnerabilities.append({
                                 "url": url,
                                 "type": "SQLi",
                                 "param": param_name,
                                 "payload": payload,
                                 "severity": "High",
-                                "evidence": f"Found SQL error: '{error}' in response"
+                                "evidence": f"Found SQL error: '{error}' in response",
+                                "response_time_ms": response_time_ms,
+                                "content_length_diff": content_length_diff,
+                                "error_keyword_match": err_match
                             })
                             break
                             
                     # 2. Boolean-based (Authentication Bypass) SQLi: Đoán lỗi dựa trên việc login thành công
-                    # (Đây là logic giả định cho demo.testfire.net, có thể cải tiến thêm để tổng quát hơn)
-                    if "sign off" in response_text or "logout" in response_text or "welcome" in response_text:
-                         # Nếu payload là OR 1=1 mà tự nhiên đăng nhập được, đó có thể là SQLi auth bypass
+                    if err_match == 0 and "login" in url.lower() and ("sign off" in response_text or "logout" in response_text or "welcome" in response_text):
                          if "1=1" in payload or "--" in payload:
                              vulnerabilities.append({
                                 "url": url,
@@ -86,7 +91,10 @@ class SQLiScanner:
                                 "param": param_name,
                                 "payload": payload,
                                 "severity": "High",
-                                "evidence": f"Possible Authentication Bypass with payload: {payload}"
+                                "evidence": f"Possible Authentication Bypass with payload: {payload}",
+                                "response_time_ms": response_time_ms,
+                                "content_length_diff": content_length_diff,
+                                "error_keyword_match": 0
                              })
                 except Exception as e:
                     print(f"Request failed on {url}: {e}")

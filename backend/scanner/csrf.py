@@ -25,6 +25,9 @@ class CSRFScanner:
                     "param": "N/A",
                     "payload": "Missing Anti-CSRF Token in POST form",
                     "severity": "Medium",
-                    "evidence": "No parameter matching common CSRF token names found in form submission."
+                    "evidence": "No parameter matching common CSRF token names found in form submission.",
+                    "response_time_ms": 0,
+                    "content_length_diff": 0,
+                    "error_keyword_match": 0
                 })
         return vulns

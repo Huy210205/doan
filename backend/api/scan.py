@@ -97,7 +97,15 @@ def perform_scan(scan_id: int, target_url: str, delay_ms: int, max_depth: int, a
         for v in all_vulns:
             # Fake response status for AI prediction
             status_code = 500 if v['type'] == 'SQLi' else 200
-            severity, confidence = classifier.predict_with_confidence(v['type'], v['payload'], status_code)
+            
+            response_time_ms = v.get('response_time_ms', 100)
+            content_length_diff = v.get('content_length_diff', 0)
+            error_keyword_match = v.get('error_keyword_match', 0)
+            
+            severity, confidence = classifier.predict_with_confidence(
+                v['type'], v['payload'], status_code, 
+                response_time_ms, content_length_diff, error_keyword_match
+            )
             
             # Đảm bảo lấy đúng các trường đã được cải tiến trong máy quét
             db_vuln = Vulnerability(

@@ -45,6 +45,9 @@ class XSSScanner:
                     else:
                         response = requests.get(url, params=test_params, headers=self.headers, timeout=5)
                         
+                    response_time_ms = int(response.elapsed.total_seconds() * 1000)
+                    content_length_diff = len(response.text)
+                    
                     # Nếu payload xuất hiện nguyên vẹn trong response -> có khả năng lỗi XSS Reflected
                     if payload in response.text:
                         vulnerabilities.append({
@@ -53,7 +56,10 @@ class XSSScanner:
                             "param": param_name,
                             "payload": payload,
                             "severity": "High",
-                            "evidence": f"Payload reflected in response body"
+                            "evidence": f"Payload reflected in response body",
+                            "response_time_ms": response_time_ms,
+                            "content_length_diff": content_length_diff,
+                            "error_keyword_match": 0
                         })
                         break
                 except Exception as e:
